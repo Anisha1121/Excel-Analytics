@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { fileService } from '../services/fileService'
 import { BarChart3, FileSpreadsheet, Download } from 'lucide-react'
+import ChartDisplay from '../components/charts/ChartDisplay'
 
 const Analytics = () => {
   const [files, setFiles] = useState([])
@@ -14,6 +15,7 @@ const Analytics = () => {
   const [loading, setLoading] = useState(true)
   const [chartLoading, setChartLoading] = useState(false)
   const [error, setError] = useState('')
+  const [generatedChart, setGeneratedChart] = useState(null)
 
   useEffect(() => {
     const fetchFiles = async () => {
@@ -53,13 +55,163 @@ const Analytics = () => {
     setError('')
 
     try {
-      const result = await fileService.generateChart(selectedFile, chartConfig)
-      // Handle chart creation result
-      console.log('Chart created:', result)
+      // Generate chart data from file data
+      const chartData = generateChartData(fileData, chartConfig)
+      
+      // For 3D charts, skip backend call and display directly
+      if (['bar3d', 'scatter3d', 'surface3d'].includes(chartConfig.chartType)) {
+        setGeneratedChart({
+          data: chartData,
+          config: chartConfig,
+          analytics: { type: '3D Chart', created: new Date() }
+        })
+        console.log('3D Chart created:', { chartType: chartConfig.chartType, data: chartData })
+      } else {
+        // For 2D charts, call backend to save analytics record
+        const result = await fileService.generateChart(selectedFile, chartConfig)
+        
+        // Set the generated chart for display
+        setGeneratedChart({
+          data: chartData,
+          config: chartConfig,
+          analytics: result.analytics
+        })
+        
+        console.log('2D Chart created:', result)
+      }
     } catch (error) {
+      console.error('Chart creation error:', error)
       setError('Failed to create chart')
     } finally {
       setChartLoading(false)
+    }
+  }
+
+  const generateChartData = (fileData, config) => {
+    if (!fileData || !fileData.preview) return null
+
+    const { xAxis, yAxis, chartType } = config
+    const data = fileData.preview
+
+    console.log('Generating chart data:', { xAxis, yAxis, chartType, dataLength: data.length })
+
+    const colors = [
+      '#3B82F6', '#EF4444', '#10B981', '#F59E0B', '#8B5CF6',
+      '#EC4899', '#14B8A6', '#F97316', '#6366F1', '#84CC16'
+    ]
+
+    if (chartType === 'scatter' || chartType === 'scatter3d') {
+      // For scatter plots, show all data points
+      const scatterData = data
+        .filter(row => row[xAxis] && row[yAxis])
+        .map(row => ({
+          x: parseFloat(row[xAxis]) || 0,
+          y: parseFloat(row[yAxis]) || 0
+        }))
+        .slice(0, 100) // Limit to 100 points for performance
+
+      return {
+        datasets: [
+          {
+            label: `${yAxis} vs ${xAxis}`,
+            data: scatterData,
+            backgroundColor: colors[0],
+            borderColor: colors[0],
+            pointRadius: 4,
+          },
+        ],
+      }
+    }
+
+    // For other chart types, group by categories
+    const categoryData = {}
+    
+    data.forEach(row => {
+      if (!row[xAxis] || !row[yAxis]) return
+      
+      const category = String(row[xAxis])
+      const value = parseFloat(row[yAxis]) || 0
+      
+      if (!categoryData[category]) {
+        categoryData[category] = []
+      }
+      categoryData[category].push(value)
+    })
+
+    // Limit categories for readability
+    const categories = Object.keys(categoryData).slice(0, 20)
+    
+    if (chartType === 'pie') {
+      // For pie charts, sum values for each category
+      const pieValues = categories.map(category => 
+        categoryData[category].reduce((sum, val) => sum + val, 0)
+      )
+
+      return {
+        labels: categories,
+        datasets: [
+          {
+            label: yAxis,
+            data: pieValues,
+            backgroundColor: colors.slice(0, categories.length),
+            borderColor: colors.slice(0, categories.length),
+            borderWidth: 2,
+          },
+        ],
+      }
+    }
+
+    // For 3D charts, use the same data structure as 2D but with type identifier
+    if (['bar3d', 'surface3d'].includes(chartType)) {
+      const chartValues = categories.map(category => 
+        categoryData[category].reduce((sum, val) => sum + val, 0)
+      )
+
+      return {
+        labels: categories,
+        datasets: [
+          {
+            label: `Total ${yAxis}`,
+            data: chartValues,
+            backgroundColor: colors.slice(0, categories.length),
+            borderColor: colors.slice(0, categories.length),
+            borderWidth: 1,
+          },
+        ],
+      }
+    }
+
+    // For bar and line charts
+    let chartValues
+    if (chartType === 'line') {
+      // For line charts, use average values
+      chartValues = categories.map(category => {
+        const values = categoryData[category]
+        return values.reduce((sum, val) => sum + val, 0) / values.length
+      })
+    } else {
+      // For bar charts, use sum of values
+      chartValues = categories.map(category => 
+        categoryData[category].reduce((sum, val) => sum + val, 0)
+      )
+    }
+
+    return {
+      labels: categories,
+      datasets: [
+        {
+          label: chartType === 'line' ? `Average ${yAxis}` : `Total ${yAxis}`,
+          data: chartValues,
+          backgroundColor: chartType === 'line' ? 'transparent' : chartType === 'bar' ? colors.slice(0, categories.length) : colors[0],
+          borderColor: chartType === 'line' ? colors[0] : chartType === 'bar' ? colors.slice(0, categories.length) : colors[0],
+          borderWidth: chartType === 'line' ? 3 : 1,
+          fill: chartType === 'line' ? false : true,
+          tension: chartType === 'line' ? 0.1 : 0,
+          pointBackgroundColor: chartType === 'line' ? colors[0] : undefined,
+          pointBorderColor: chartType === 'line' ? colors[0] : undefined,
+          pointRadius: chartType === 'line' ? 4 : 0,
+        },
+      ],
     }
   }
 
@@ -189,25 +341,55 @@ const Analytics = () => {
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                       Chart Type
                     </label>
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                      {[
-                        { value: 'bar', label: 'Bar Chart' },
-                        { value: 'line', label: 'Line Chart' },
-                        { value: 'pie', label: 'Pie Chart' },
-                        { value: 'scatter', label: 'Scatter Plot' }
-                      ].map((type) => (
-                        <button
-                          key={type.value}
-                          onClick={() => setChartConfig({ ...chartConfig, chartType: type.value })}
-                          className={`p-3 text-sm font-medium rounded-lg border transition-colors ${
-                            chartConfig.chartType === type.value
-                              ? 'border-primary-500 bg-primary-50 text-primary-700'
-                              : 'border-gray-200 text-gray-700 hover:bg-gray-50'
-                          }`}
-                        >
-                          {type.label}
-                        </button>
-                      ))}
+                    
+                    {/* 2D Charts */}
+                    <div className="mb-4">
+                      <h5 className="text-sm font-medium text-gray-600 mb-2">2D Charts</h5>
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                        {[
+                          { value: 'bar', label: 'Bar Chart' },
+                          { value: 'line', label: 'Line Chart' },
+                          { value: 'pie', label: 'Pie Chart' },
+                          { value: 'scatter', label: 'Scatter Plot' }
+                        ].map((type) => (
+                          <button
+                            key={type.value}
+                            onClick={() => setChartConfig({ ...chartConfig, chartType: type.value })}
+                            className={`p-3 text-sm font-medium rounded-lg border transition-colors ${
+                              chartConfig.chartType === type.value
+                                ? 'border-primary-500 bg-primary-50 text-primary-700'
+                                : 'border-gray-200 text-gray-700 hover:bg-gray-50'
+                            }`}
+                          >
+                            {type.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* 3D Charts */}
+                    <div>
+                      <h5 className="text-sm font-medium text-gray-600 mb-2">3D Charts</h5>
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                        {[
+                          { value: 'bar3d', label: '3D Bar Chart' },
+                          { value: 'scatter3d', label: '3D Scatter Plot' },
+                          { value: 'surface3d', label: '3D Surface' }
+                        ].map((type) => (
+                          <button
+                            key={type.value}
+                            onClick={() => setChartConfig({ ...chartConfig, chartType: type.value })}
+                            className={`p-3 text-sm font-medium rounded-lg border transition-colors ${
+                              chartConfig.chartType === type.value
+                                ? 'border-purple-500 bg-purple-50 text-purple-700'
+                                : 'border-gray-200 text-gray-700 hover:bg-gray-50'
+                            }`}
+                          >
+                            <span className="block">{type.label}</span>
+                            <span className="text-xs text-gray-500">Interactive 3D</span>
+                          </button>
+                        ))}
+                      </div>
                     </div>
                   </div>
 
@@ -284,6 +466,17 @@ const Analytics = () => {
           </div>
         </div>
       </div>
+
+      {/* Generated Chart Display */}
+      {generatedChart && (
+        <div className="mt-8">
+          <h2 className="text-2xl font-bold text-gray-900 mb-6">Generated Chart</h2>
+          <ChartDisplay 
+            chartData={generatedChart.data} 
+            chartConfig={generatedChart.config} 
+          />
+        </div>
+      )}
     </div>
   )
 }
