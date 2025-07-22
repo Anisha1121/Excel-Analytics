@@ -114,6 +114,17 @@ app.get('/api/routes', (req, res) => {
   res.json({ routes, timestamp: new Date().toISOString() });
 });
 
+// Debug route to check environment (without exposing secrets)
+app.get('/api/debug', (req, res) => {
+  res.json({
+    environment: process.env.NODE_ENV,
+    port: process.env.PORT,
+    mongoConnected: !!process.env.MONGODB_URI,
+    jwtSecretSet: !!process.env.JWT_SECRET,
+    timestamp: new Date().toISOString()
+  });
+});
+
 // Health check route
 app.get('/api/health', (req, res) => {
   res.json({ 
