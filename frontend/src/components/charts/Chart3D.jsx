@@ -187,7 +187,99 @@ const Scatter3D = ({ data, colors, labels, originalData }) => {
   );
 };
 
-const Surface3D = ({ data, width, height, colors }) => {
+const InteractiveSurfacePoint = ({ position, value, label, originalData, color, onHover, onLeave, onClick }) => {
+  const meshRef = useRef();
+  const [hovered, setHovered] = useState(false);
+
+  useFrame((state) => {
+    if (meshRef.current) {
+      meshRef.current.scale.setScalar(hovered ? 1.5 : 1);
+    }
+  });
+
+  const handlePointerOver = (e) => {
+    e.stopPropagation();
+    setHovered(true);
+    onHover && onHover({ position, label, value, originalData });
+    document.body.style.cursor = 'pointer';
+  };
+
+  const handlePointerOut = (e) => {
+    e.stopPropagation();
+    setHovered(false);
+    onLeave && onLeave();
+    document.body.style.cursor = 'auto';
+  };
+
+  const handleClick = (e) => {
+    e.stopPropagation();
+    onClick && onClick({ position, label, value, originalData });
+  };
+
+  return (
+    <group position={position}>
+      <mesh
+        ref={meshRef}
+        onPointerOver={handlePointerOver}
+        onPointerOut={handlePointerOut}
+        onClick={handleClick}
+      >
+        <sphereGeometry args={[0.1, 8, 8]} />
+        <meshStandardMaterial 
+          color={hovered ? '#FFD700' : color}
+          emissive={hovered ? '#FFD700' : color}
+          emissiveIntensity={hovered ? 0.4 : 0.1}
+          metalness={0.5}
+          roughness={0.3}
+        />
+      </mesh>
+      
+      {/* Value label */}
+      {hovered && (
+        <Text
+          position={[0, 0.3, 0]}
+          fontSize={0.15}
+          color="white"
+          anchorX="center"
+          anchorY="middle"
+        >
+          {typeof value === 'number' ? value.toFixed(2) : value}
+        </Text>
+      )}
+      
+      {/* Hover tooltip */}
+      {hovered && (
+        <Html
+          position={[0, 0.5, 0]}
+          center
+          style={{
+            pointerEvents: 'none',
+            userSelect: 'none'
+          }}
+        >
+          <div className="bg-black bg-opacity-90 text-white p-2 rounded text-xs whitespace-nowrap">
+            <div><strong>{label}</strong></div>
+            <div>Value: {typeof value === 'number' ? value.toFixed(2) : value}</div>
+            <div>Position: ({position[0].toFixed(1)}, {position[1].toFixed(1)}, {position[2].toFixed(1)})</div>
+            {originalData && (
+              <div className="text-gray-300 text-xs mt-1 max-w-48">
+                {Object.entries(originalData).slice(0, 4).map(([key, val]) => (
+                  <div key={key} className="truncate">{key}: {val}</div>
+                ))}
+              </div>
+            )}
+          </div>
+        </Html>
+      )}
+    </group>
+  );
+};
+
+const Surface3D = ({ data, width, height, colors, labels, originalData }) => {
+  const [hoveredPoint, setHoveredPoint] = useState(null);
+  const [selectedPoint, setSelectedPoint] = useState(null);
+
+  // Create the surface geometry
   const geometry = useMemo(() => {
     const geo = new THREE.PlaneGeometry(width, height, data.length - 1, data[0].length - 1);
     const vertices = geo.attributes.position.array;
@@ -204,14 +296,63 @@ const Surface3D = ({ data, width, height, colors }) => {
     return geo;
   }, [data, width, height]);
 
+  // Create interactive points on the surface
+  const surfacePoints = useMemo(() => {
+    const points = [];
+    for (let i = 0; i < data.length; i++) {
+      for (let j = 0; j < data[i].length; j++) {
+        const x = (j / (data[i].length - 1)) * width - width / 2;
+        const z = (i / (data.length - 1)) * height - height / 2;
+        const y = data[i][j] * 0.1;
+        
+        const pointIndex = i * data[i].length + j;
+        const label = labels && labels[pointIndex] ? labels[pointIndex] : `Point (${i}, ${j})`;
+        const originalPointData = originalData && originalData[pointIndex] ? originalData[pointIndex] : null;
+        
+        points.push(
+          <InteractiveSurfacePoint
+            key={`${i}-${j}`}
+            position={[x, y, z]}
+            value={data[i][j]}
+            label={label}
+            originalData={originalPointData}
+            color={colors[pointIndex % colors.length]}
+            onHover={setHoveredPoint}
+            onLeave={() => setHoveredPoint(null)}
+            onClick={setSelectedPoint}
+          />
+        );
+      }
+    }
+    return points;
+  }, [data, width, height, labels, originalData, colors]);
+
   return (
-    <mesh geometry={geometry} rotation={[-Math.PI / 2, 0, 0]}>
-      <meshStandardMaterial 
-        color={colors[0]} 
-        wireframe={false}
-        side={THREE.DoubleSide}
-      />
-    </mesh>
+    <group>
+      {/* Surface mesh */}
+      <mesh geometry={geometry} rotation={[-Math.PI / 2, 0, 0]}>
+        <meshStandardMaterial 
+          color={colors[0]} 
+          wireframe={false}
+          side={THREE.DoubleSide}
+          transparent
+          opacity={0.7}
+        />
+      </mesh>
+      
+      {/* Interactive surface points */}
+      {surfacePoints}
+      
+      {/* Grid overlay for better visualization */}
+      <mesh geometry={geometry} rotation={[-Math.PI / 2, 0, 0]}>
+        <meshStandardMaterial 
+          color="#ffffff" 
+          wireframe={true}
+          transparent
+          opacity={0.2}
+        />
+      </mesh>
+    </group>
   );
 };
 
@@ -352,15 +493,38 @@ const Chart3D = ({ chartData, chartConfig }) => {
           // Create surface data from chart data
           const surfaceData = [];
           const size = Math.ceil(Math.sqrt(chartData.labels.length));
+          const surfaceLabels = [];
+          const originalSurfaceData = [];
+          
           for (let i = 0; i < size; i++) {
             const row = [];
             for (let j = 0; j < size; j++) {
               const dataIndex = i * size + j;
-              row.push(chartData.datasets[0].data[dataIndex] || 0);
+              const value = chartData.datasets[0].data[dataIndex] || 0;
+              row.push(value);
+              
+              // Collect labels and original data for this point
+              if (dataIndex < chartData.labels.length) {
+                surfaceLabels.push(chartData.labels[dataIndex]);
+                originalSurfaceData.push(originalData[dataIndex] || null);
+              } else {
+                surfaceLabels.push(`Point (${i}, ${j})`);
+                originalSurfaceData.push(null);
+              }
             }
             surfaceData.push(row);
           }
-          return <Surface3D data={surfaceData} width={10} height={10} colors={colors} />;
+          
+          return (
+            <Surface3D 
+              data={surfaceData} 
+              width={10} 
+              height={10} 
+              colors={colors}
+              labels={surfaceLabels}
+              originalData={originalSurfaceData}
+            />
+          );
 
         default:
           console.warn('Unknown 3D chart type:', chartConfig.chartType);
