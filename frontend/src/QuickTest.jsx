@@ -58,6 +58,18 @@ function QuickTest() {
     setLoading(false)
   };
 
+  const testDebug = async () => {
+    setLoading(true)
+    try {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/debug`);
+      const data = await response.json();
+      setResult(JSON.stringify(data, null, 2));
+    } catch (error) {
+      setResult(`Error: ${error.message}`);
+    }
+    setLoading(false)
+  };
+
   return (
     <div className="min-h-screen bg-gray-100 p-8">
       <div className="max-w-2xl mx-auto bg-white p-8 rounded-lg shadow">
@@ -90,6 +102,14 @@ function QuickTest() {
             className="bg-purple-500 text-white px-4 py-2 rounded hover:bg-purple-600 disabled:opacity-50 ml-4"
           >
             {loading ? 'Testing...' : 'List Routes'}
+          </button>
+
+          <button 
+            onClick={testDebug}
+            disabled={loading}
+            className="bg-orange-500 text-white px-4 py-2 rounded hover:bg-orange-600 disabled:opacity-50 ml-4"
+          >
+            {loading ? 'Testing...' : 'Check Environment'}
           </button>
         </div>
 
