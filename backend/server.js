@@ -34,28 +34,9 @@ const limiter = rateLimit({
 });
 app.use('/api/', limiter);
 
-// CORS configuration - More permissive for debugging
-const allowedOrigins = [
-  'https://excel-analytics-rho.vercel.app',
-  'http://localhost:5173',
-  'http://localhost:3000'
-];
-
+// CORS configuration - ALLOW ALL for debugging
 app.use(cors({
-  origin: function (origin, callback) {
-    console.log('🌐 CORS Check - Origin:', origin);
-    // Allow requests with no origin (mobile apps, curl, etc.)
-    if (!origin) return callback(null, true);
-    
-    // Check if origin is in allowed list or matches vercel pattern
-    if (allowedOrigins.includes(origin) || /\.vercel\.app$/.test(origin)) {
-      console.log('✅ CORS Allowed for:', origin);
-      return callback(null, true);
-    }
-    
-    console.log('❌ CORS Blocked for:', origin);
-    return callback(new Error('Not allowed by CORS'));
-  },
+  origin: true, // Allow all origins temporarily
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
@@ -94,6 +75,16 @@ app.use('/api/auth', authRoutes);
 app.use('/api/files', fileRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/admin', adminRoutes);
+
+// Test route for immediate debugging
+app.post('/api/test', (req, res) => {
+  res.json({ 
+    success: true, 
+    message: 'Backend is working!', 
+    body: req.body,
+    timestamp: new Date().toISOString()
+  });
+});
 
 // Health check route
 app.get('/api/health', (req, res) => {
