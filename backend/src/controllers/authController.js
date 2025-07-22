@@ -194,9 +194,61 @@ const refreshToken = async (req, res) => {
   }
 };
 
+// Change password
+const changePassword = async (req, res) => {
+  try {
+    // Check for validation errors
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        success: false,
+        message: 'Validation failed',
+        errors: errors.array()
+      });
+    }
+
+    const { currentPassword, newPassword } = req.body;
+    const userId = req.user.id;
+
+    // Get user with password
+    const user = await User.findById(userId).select('+password');
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+
+    // Check current password
+    const isCurrentPasswordMatch = await user.comparePassword(currentPassword);
+    if (!isCurrentPasswordMatch) {
+      return res.status(400).json({
+        success: false,
+        message: 'Current password is incorrect'
+      });
+    }
+
+    // Update password
+    user.password = newPassword;
+    await user.save();
+
+    res.json({
+      success: true,
+      message: 'Password changed successfully'
+    });
+  } catch (error) {
+    console.error('Change password error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error during password change'
+    });
+  }
+};
+
 module.exports = {
   register,
   login,
   getCurrentUser,
-  refreshToken
+  refreshToken,
+  changePassword
 };

@@ -4,7 +4,8 @@ const {
   register,
   login,
   getCurrentUser,
-  refreshToken
+  refreshToken,
+  changePassword
 } = require('../controllers/authController');
 const { auth } = require('../middleware/auth');
 
@@ -38,10 +39,28 @@ const loginValidation = [
     .withMessage('Password is required')
 ];
 
+// Change password validation rules
+const changePasswordValidation = [
+  body('currentPassword')
+    .notEmpty()
+    .withMessage('Current password is required'),
+  body('newPassword')
+    .isLength({ min: 6 })
+    .withMessage('New password must be at least 6 characters long'),
+  body('confirmPassword')
+    .custom((value, { req }) => {
+      if (value !== req.body.newPassword) {
+        throw new Error('Password confirmation does not match new password');
+      }
+      return true;
+    })
+];
+
 // Routes
 router.post('/register', registerValidation, register);
 router.post('/login', loginValidation, login);
 router.get('/me', auth, getCurrentUser);
 router.post('/refresh', auth, refreshToken);
+router.put('/change-password', auth, changePasswordValidation, changePassword);
 
 module.exports = router;
