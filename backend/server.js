@@ -69,6 +69,21 @@ app.use('/api/files', fileRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/admin', adminRoutes);
 
+// Health check route
+app.get('/api/health', (req, res) => {
+  res.json({ 
+    status: 'OK', 
+    message: 'Excel Analytics Backend is running!',
+    timestamp: new Date().toISOString(),
+    environment: process.env.NODE_ENV
+  });
+});
+
+// Root route
+app.get('/', (req, res) => {
+  res.json({ message: 'Excel Analytics API Server' });
+});
+
 // Health check
 app.get('/api/health', (req, res) => {
   res.json({
