@@ -506,7 +506,7 @@ const Chart3D = ({ chartData, chartConfig }) => {
               // Collect labels and original data for this point
               if (dataIndex < chartData.labels.length) {
                 surfaceLabels.push(chartData.labels[dataIndex]);
-                originalSurfaceData.push(originalData[dataIndex] || null);
+                originalSurfaceData.push(chartData.originalData ? chartData.originalData[dataIndex] : null);
               } else {
                 surfaceLabels.push(`Point (${i}, ${j})`);
                 originalSurfaceData.push(null);

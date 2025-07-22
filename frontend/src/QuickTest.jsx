@@ -85,51 +85,6 @@ function QuickTest() {
 
   const test3DChart = () => {
     const testData = {
-      labels: ['Product A', 'Product B', 'Product C', 'Product D', 'Product E', 'Product F', 'Product G', 'Product H', 'Product I'],
-      datasets: [{
-        data: [
-          { x: 1, y: 2, z: 3 },
-          { x: 2, y: 3, z: 1 },
-          { x: 3, y: 1, z: 2 },
-          { x: 4, y: 4, z: 4 },
-          { x: 5, y: 2, z: 3 },
-          { x: 6, y: 1, z: 2 },
-          { x: 7, y: 3, z: 4 },
-          { x: 8, y: 2, z: 1 },
-          { x: 9, y: 4, z: 3 }
-        ]
-      }],
-      originalData: [
-        { name: 'Product A', sales: 100, profit: 20, region: 'North' },
-        { name: 'Product B', sales: 150, profit: 30, region: 'South' },
-        { name: 'Product C', sales: 120, profit: 25, region: 'East' },
-        { name: 'Product D', sales: 200, profit: 40, region: 'West' },
-        { name: 'Product E', sales: 130, profit: 28, region: 'Central' },
-        { name: 'Product F', sales: 110, profit: 22, region: 'North' },
-        { name: 'Product G', sales: 170, profit: 35, region: 'South' },
-        { name: 'Product H', sales: 90, profit: 18, region: 'East' },
-        { name: 'Product I', sales: 160, profit: 32, region: 'West' }
-      ]
-    };
-
-    const testConfig = {
-      chartType: 'surface3d',
-      title: 'Test 3D Surface Chart',
-      xAxis: 'Sales',
-      yAxis: 'Profit', 
-      zAxis: 'Performance'
-    };
-
-    setResult(
-      <div>
-        <p>Testing 3D Surface Chart Component:</p>
-        <Chart3D chartData={testData} chartConfig={testConfig} />
-      </div>
-    );
-  };
-
-  const test3DScatter = () => {
-    const testData = {
       labels: ['Product A', 'Product B', 'Product C', 'Product D', 'Product E'],
       datasets: [{
         data: [
@@ -141,17 +96,17 @@ function QuickTest() {
         ]
       }],
       originalData: [
-        { name: 'Product A', sales: 100, profit: 20, region: 'North' },
-        { name: 'Product B', sales: 150, profit: 30, region: 'South' },
-        { name: 'Product C', sales: 120, profit: 25, region: 'East' },
-        { name: 'Product D', sales: 200, profit: 40, region: 'West' },
-        { name: 'Product E', sales: 130, profit: 28, region: 'Central' }
+        { label: 'Product A', name: 'Product A', sales: 100, profit: 20 },
+        { label: 'Product B', name: 'Product B', sales: 150, profit: 30 },
+        { label: 'Product C', name: 'Product C', sales: 120, profit: 25 },
+        { label: 'Product D', name: 'Product D', sales: 200, profit: 40 },
+        { label: 'Product E', name: 'Product E', sales: 130, profit: 28 }
       ]
     };
 
     const testConfig = {
-      chartType: 'scatter3d',
-      title: 'Test 3D Scatter Chart',
+      chartType: 'surface3d', // Changed to test Surface 3D
+      title: 'Test Surface 3D Chart',
       xAxis: 'Sales',
       yAxis: 'Profit', 
       zAxis: 'Performance'
@@ -159,7 +114,7 @@ function QuickTest() {
 
     setResult(
       <div>
-        <p>Testing 3D Scatter Chart Component:</p>
+        <p>Testing Surface 3D Chart Component:</p>
         <Chart3D chartData={testData} chartConfig={testConfig} />
       </div>
     );
@@ -222,15 +177,7 @@ function QuickTest() {
             disabled={loading}
             className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600 disabled:opacity-50 ml-4"
           >
-            Test 3D Surface
-          </button>
-          
-          <button 
-            onClick={test3DScatter}
-            disabled={loading}
-            className="bg-pink-500 text-white px-4 py-2 rounded hover:bg-pink-600 disabled:opacity-50 ml-4"
-          >
-            Test 3D Scatter
+            Test 3D Chart
           </button>
         </div>
 
