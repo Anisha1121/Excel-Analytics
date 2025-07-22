@@ -29,6 +29,7 @@ ChartJS.register(
 
 const ChartDisplay = ({ chartData, chartConfig }) => {
   console.log('ChartDisplay received:', { chartData, chartConfig });
+  const [selectedPoint, setSelectedPoint] = React.useState(null);
 
   if (!chartData || !chartConfig) {
     return (
@@ -60,19 +61,56 @@ const ChartDisplay = ({ chartData, chartConfig }) => {
       },
       tooltip: {
         enabled: true,
-        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+        backgroundColor: 'rgba(0, 0, 0, 0.9)',
         titleColor: 'white',
         bodyColor: 'white',
         borderColor: 'white',
         borderWidth: 1,
         callbacks: {
+          title: function(context) {
+            if (chartConfig.chartType === 'scatter') {
+              const dataIndex = context[0].dataIndex;
+              const originalData = chartData.originalData;
+              if (originalData && originalData[dataIndex]) {
+                return originalData[dataIndex].label || `Entry ${dataIndex + 1}`;
+              }
+              return `Data Point ${dataIndex + 1}`;
+            }
+            return context[0].label;
+          },
           label: function(context) {
             if (chartConfig.chartType === 'pie') {
               const total = context.dataset.data.reduce((a, b) => a + b, 0);
               const percentage = ((context.parsed * 100) / total).toFixed(1);
               return `${context.label}: ${context.parsed} (${percentage}%)`;
+            } else if (chartConfig.chartType === 'scatter') {
+              const dataIndex = context.dataIndex;
+              const point = context.parsed;
+              const originalData = chartData.originalData;
+              
+              let labels = [];
+              labels.push(`X (${chartConfig.xAxis}): ${point.x}`);
+              labels.push(`Y (${chartConfig.yAxis}): ${point.y}`);
+              
+              // Add original data details if available
+              if (originalData && originalData[dataIndex]) {
+                const original = originalData[dataIndex];
+                Object.entries(original).forEach(([key, value]) => {
+                  if (key !== 'x' && key !== 'y' && key !== 'label') {
+                    labels.push(`${key}: ${value}`);
+                  }
+                });
+              }
+              
+              return labels;
             }
             return `${context.dataset.label}: ${context.parsed.y || context.parsed}`;
+          },
+          footer: function(context) {
+            if (chartConfig.chartType === 'scatter') {
+              return 'Click for more details';
+            }
+            return '';
           }
         }
       }
@@ -113,7 +151,24 @@ const ChartDisplay = ({ chartData, chartConfig }) => {
         radius: chartConfig.chartType === 'scatter' ? 6 : 4,
         hoverRadius: chartConfig.chartType === 'scatter' ? 8 : 6,
       }
-    }
+    },
+    onClick: chartConfig.chartType === 'scatter' ? (event, elements) => {
+      if (elements.length > 0) {
+        const dataIndex = elements[0].index;
+        const datasetIndex = elements[0].datasetIndex;
+        const originalData = chartData.originalData;
+        const point = chartData.datasets[datasetIndex].data[dataIndex];
+        
+        setSelectedPoint({
+          index: dataIndex,
+          point: point,
+          label: originalData && originalData[dataIndex] ? 
+            originalData[dataIndex].label || `Entry ${dataIndex + 1}` : 
+            `Entry ${dataIndex + 1}`,
+          originalData: originalData ? originalData[dataIndex] : null
+        });
+      }
+    } : undefined
   };
 
   const renderChart = () => {
@@ -138,10 +193,40 @@ const ChartDisplay = ({ chartData, chartConfig }) => {
   };
 
   return (
-    <div className="bg-gray-900 rounded-lg shadow p-6">
+    <div className="bg-gray-900 rounded-lg shadow p-6 relative">
       <div className={['bar3d', 'scatter3d', 'surface3d'].includes(chartConfig.chartType) ? 'h-96' : 'h-96'}>
         {renderChart()}
       </div>
+      
+      {/* Selected Point Details for Scatter Plots */}
+      {selectedPoint && chartConfig.chartType === 'scatter' && (
+        <div className="absolute top-4 right-4 bg-blue-600 text-white p-3 rounded-lg max-w-xs">
+          <div className="flex justify-between items-start mb-2">
+            <h4 className="font-bold text-sm">Selected Point</h4>
+            <button 
+              onClick={() => setSelectedPoint(null)}
+              className="text-white hover:text-gray-300 ml-2"
+            >
+              ×
+            </button>
+          </div>
+          <div className="text-xs space-y-1">
+            <div><strong>Label:</strong> {selectedPoint.label}</div>
+            <div><strong>X ({chartConfig.xAxis}):</strong> {selectedPoint.point.x}</div>
+            <div><strong>Y ({chartConfig.yAxis}):</strong> {selectedPoint.point.y}</div>
+            {selectedPoint.originalData && (
+              <div className="mt-2 pt-2 border-t border-blue-400">
+                <div className="font-semibold mb-1">Full Details:</div>
+                {Object.entries(selectedPoint.originalData).map(([key, value]) => (
+                  <div key={key} className="truncate">
+                    <strong>{key}:</strong> {typeof value === 'object' ? JSON.stringify(value) : value}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
       
       {/* Chart Actions */}
       <div className="mt-4 flex justify-end space-x-3">

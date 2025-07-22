@@ -1,6 +1,6 @@
-import React, { useMemo, useRef } from 'react';
-import { Canvas, useFrame } from '@react-three/fiber';
-import { OrbitControls, Text } from '@react-three/drei';
+import React, { useMemo, useRef, useState } from 'react';
+import { Canvas, useFrame, useThree } from '@react-three/fiber';
+import { OrbitControls, Text, Html } from '@react-three/drei';
 import * as THREE from 'three';
 
 const Bar3D = ({ position, height, color, label, value }) => {
@@ -46,17 +46,146 @@ const Bar3D = ({ position, height, color, label, value }) => {
   );
 };
 
-const Scatter3D = ({ data, colors }) => {
+const InteractiveScatterPoint = ({ position, color, label, value, originalData, onHover, onLeave, onClick }) => {
+  const meshRef = useRef();
+  const [hovered, setHovered] = useState(false);
+
+  useFrame((state) => {
+    if (meshRef.current) {
+      meshRef.current.scale.setScalar(hovered ? 1.5 : 1);
+    }
+  });
+
+  const handlePointerOver = (e) => {
+    e.stopPropagation();
+    setHovered(true);
+    onHover && onHover({ position, label, value, originalData });
+    document.body.style.cursor = 'pointer';
+  };
+
+  const handlePointerOut = (e) => {
+    e.stopPropagation();
+    setHovered(false);
+    onLeave && onLeave();
+    document.body.style.cursor = 'auto';
+  };
+
+  const handleClick = (e) => {
+    e.stopPropagation();
+    onClick && onClick({ position, label, value, originalData });
+  };
+
+  return (
+    <group position={position}>
+      <mesh
+        ref={meshRef}
+        onPointerOver={handlePointerOver}
+        onPointerOut={handlePointerOut}
+        onClick={handleClick}
+      >
+        <sphereGeometry args={[0.15, 16, 16]} />
+        <meshStandardMaterial 
+          color={hovered ? '#FFD700' : color}
+          emissive={hovered ? '#FFD700' : color}
+          emissiveIntensity={hovered ? 0.3 : 0.1}
+          metalness={0.3}
+          roughness={0.4}
+        />
+      </mesh>
+      
+      {/* Always visible label */}
+      <Text
+        position={[0, -0.3, 0]}
+        fontSize={0.2}
+        color="white"
+        anchorX="center"
+        anchorY="middle"
+        font="/fonts/arial.woff"
+      >
+        {label}
+      </Text>
+      
+      {/* Hover tooltip */}
+      {hovered && (
+        <Html
+          position={[0, 0.5, 0]}
+          center
+          style={{
+            pointerEvents: 'none',
+            userSelect: 'none'
+          }}
+        >
+          <div className="bg-black bg-opacity-80 text-white p-2 rounded text-xs whitespace-nowrap">
+            <div><strong>{label}</strong></div>
+            <div>Value: {typeof value === 'object' ? JSON.stringify(value) : value}</div>
+            {originalData && (
+              <div className="text-gray-300 text-xs mt-1">
+                {Object.entries(originalData).map(([key, val]) => (
+                  <div key={key}>{key}: {val}</div>
+                ))}
+              </div>
+            )}
+          </div>
+        </Html>
+      )}
+    </group>
+  );
+};
+
+const Scatter3D = ({ data, colors, labels, originalData }) => {
+  const [hoveredPoint, setHoveredPoint] = useState(null);
+  const [selectedPoint, setSelectedPoint] = useState(null);
+
   const points = useMemo(() => {
     return data.map((point, index) => (
-      <mesh key={index} position={[point.x * 0.1, point.y * 0.1, point.z * 0.1]}>
-        <sphereGeometry args={[0.1, 16, 16]} />
-        <meshStandardMaterial color={colors[index % colors.length]} />
-      </mesh>
+      <InteractiveScatterPoint
+        key={index}
+        position={[point.x * 0.1, point.y * 0.1, point.z * 0.1]}
+        color={colors[index % colors.length]}
+        label={labels ? labels[index] : `Point ${index + 1}`}
+        value={point}
+        originalData={originalData ? originalData[index] : null}
+        onHover={setHoveredPoint}
+        onLeave={() => setHoveredPoint(null)}
+        onClick={setSelectedPoint}
+      />
     ));
-  }, [data, colors]);
+  }, [data, colors, labels, originalData]);
 
-  return <group>{points}</group>;
+  return (
+    <group>
+      {points}
+      
+      {/* Axes labels */}
+      <Text
+        position={[12, 0, 0]}
+        fontSize={0.5}
+        color="white"
+        anchorX="center"
+        anchorY="middle"
+      >
+        X-Axis
+      </Text>
+      <Text
+        position={[0, 12, 0]}
+        fontSize={0.5}
+        color="white"
+        anchorX="center"
+        anchorY="middle"
+      >
+        Y-Axis
+      </Text>
+      <Text
+        position={[0, 0, 12]}
+        fontSize={0.5}
+        color="white"
+        anchorX="center"
+        anchorY="middle"
+      >
+        Z-Axis
+      </Text>
+    </group>
+  );
 };
 
 const Surface3D = ({ data, width, height, colors }) => {
@@ -89,6 +218,7 @@ const Surface3D = ({ data, width, height, colors }) => {
 
 const Chart3D = ({ chartData, chartConfig }) => {
   console.log('Chart3D component called with:', { chartData, chartConfig });
+  const [selectedInfo, setSelectedInfo] = useState(null);
 
   const colors = [
     '#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7',
@@ -128,13 +258,54 @@ const Chart3D = ({ chartData, chartConfig }) => {
           if (!chartData.datasets || !chartData.datasets[0] || !chartData.datasets[0].data) {
             return <div>No data for 3D scatter plot</div>;
           }
-          // Convert 2D scatter data to 3D
-          const scatter3DData = chartData.datasets[0].data.map((point, index) => ({
-            x: point.x || index,
-            y: point.y || point,
-            z: Math.random() * 10 // Add random Z component
-          }));
-          return <Scatter3D data={scatter3DData} colors={colors} />;
+          
+          // Enhanced scatter3D with proper labels and original data
+          const scatterData = chartData.datasets[0].data;
+          const scatter3DData = scatterData.map((point, index) => {
+            if (typeof point === 'object' && point.x !== undefined && point.y !== undefined) {
+              return {
+                x: point.x,
+                y: point.y,
+                z: point.z || (Math.random() * 10) // Use z if available, otherwise random
+              };
+            } else {
+              return {
+                x: index,
+                y: typeof point === 'number' ? point : 0,
+                z: Math.random() * 10
+              };
+            }
+          });
+          
+          // Generate labels from chart data
+          const scatterLabels = chartData.labels || scatterData.map((point, index) => {
+            if (typeof point === 'object' && point.label) {
+              return point.label;
+            }
+            return chartData.labels ? chartData.labels[index] : `Entry ${index + 1}`;
+          });
+          
+          // Pass original data for detailed tooltips
+          const originalScatterData = scatterData.map((point, index) => {
+            if (typeof point === 'object') {
+              return point;
+            } else {
+              return {
+                value: point,
+                index: index,
+                label: scatterLabels[index]
+              };
+            }
+          });
+          
+          return (
+            <Scatter3D 
+              data={scatter3DData} 
+              colors={colors} 
+              labels={scatterLabels}
+              originalData={originalScatterData}
+            />
+          );
 
         case 'surface3d':
           if (!chartData.labels || !chartData.datasets || !chartData.datasets[0]) {
@@ -163,49 +334,93 @@ const Chart3D = ({ chartData, chartConfig }) => {
   };
 
   return (
-    <div className="h-96 w-full bg-gray-900 rounded-lg">
-      <Canvas 
-        camera={{ position: [10, 10, 10], fov: 60 }}
-        shadows
-        gl={{ antialias: true }}
-      >
-        <ambientLight intensity={0.4} />
-        <directionalLight 
-          position={[10, 10, 5]} 
-          intensity={1.2} 
-          castShadow
-          shadow-mapSize={[1024, 1024]}
-        />
-        <pointLight position={[-10, -10, -10]} intensity={0.5} />
-        <OrbitControls enablePan={true} enableZoom={true} enableRotate={true} />
-        
-        {render3DChart()}
-        
-        {/* Grid */}
-        <gridHelper args={[20, 20, '#444', '#666']} />
-        
-        {/* Axes */}
-        <group>
-          <mesh position={[0, 0, 10]}>
-            <cylinderGeometry args={[0.05, 0.05, 20]} />
-            <meshStandardMaterial color="#FF0000" emissive="#FF0000" emissiveIntensity={0.2} />
+    <div className="relative">
+      {/* 3D Canvas */}
+      <div className="h-96 w-full bg-gray-900 rounded-lg">
+        <Canvas 
+          camera={{ position: [10, 10, 10], fov: 60 }}
+          shadows
+          gl={{ antialias: true }}
+        >
+          <ambientLight intensity={0.4} />
+          <directionalLight 
+            position={[10, 10, 5]} 
+            intensity={1.2} 
+            castShadow
+            shadow-mapSize={[1024, 1024]}
+          />
+          <pointLight position={[-10, -10, -10]} intensity={0.5} />
+          <OrbitControls enablePan={true} enableZoom={true} enableRotate={true} />
+          
+          {render3DChart()}
+          
+          {/* Grid */}
+          <gridHelper args={[20, 20, '#444', '#666']} />
+          
+          {/* Axes */}
+          <group>
+            <mesh position={[0, 0, 10]}>
+              <cylinderGeometry args={[0.05, 0.05, 20]} />
+              <meshStandardMaterial color="#FF0000" emissive="#FF0000" emissiveIntensity={0.2} />
+            </mesh>
+            <mesh position={[10, 0, 0]} rotation={[0, 0, Math.PI / 2]}>
+              <cylinderGeometry args={[0.05, 0.05, 20]} />
+              <meshStandardMaterial color="#00FF00" emissive="#00FF00" emissiveIntensity={0.2} />
+            </mesh>
+            <mesh position={[0, 10, 0]}>
+              <cylinderGeometry args={[0.05, 0.05, 20]} />
+              <meshStandardMaterial color="#0000FF" emissive="#0000FF" emissiveIntensity={0.2} />
+            </mesh>
+          </group>
+          
+          {/* Ground plane for shadows */}
+          <mesh position={[0, -0.1, 0]} rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
+            <planeGeometry args={[30, 30]} />
+            <meshStandardMaterial color="#222" transparent opacity={0.8} />
           </mesh>
-          <mesh position={[10, 0, 0]} rotation={[0, 0, Math.PI / 2]}>
-            <cylinderGeometry args={[0.05, 0.05, 20]} />
-            <meshStandardMaterial color="#00FF00" emissive="#00FF00" emissiveIntensity={0.2} />
-          </mesh>
-          <mesh position={[0, 10, 0]}>
-            <cylinderGeometry args={[0.05, 0.05, 20]} />
-            <meshStandardMaterial color="#0000FF" emissive="#0000FF" emissiveIntensity={0.2} />
-          </mesh>
-        </group>
+        </Canvas>
+      </div>
+
+      {/* Legend and Controls */}
+      <div className="absolute top-4 right-4 bg-black bg-opacity-70 text-white p-3 rounded-lg max-w-xs">
+        <h4 className="font-bold mb-2">Chart Legend</h4>
+        {chartConfig.chartType === 'scatter3d' && chartData.labels && (
+          <div className="space-y-1 max-h-48 overflow-y-auto">
+            {chartData.labels.slice(0, 10).map((label, index) => (
+              <div key={index} className="flex items-center text-xs">
+                <div 
+                  className="w-3 h-3 rounded-full mr-2 flex-shrink-0"
+                  style={{ backgroundColor: colors[index % colors.length] }}
+                />
+                <span className="truncate">{label}</span>
+              </div>
+            ))}
+            {chartData.labels.length > 10 && (
+              <div className="text-xs text-gray-400">
+                ...and {chartData.labels.length - 10} more
+              </div>
+            )}
+          </div>
+        )}
         
-        {/* Ground plane for shadows */}
-        <mesh position={[0, -0.1, 0]} rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
-          <planeGeometry args={[30, 30]} />
-          <meshStandardMaterial color="#222" transparent opacity={0.8} />
-        </mesh>
-      </Canvas>
+        <div className="mt-3 text-xs text-gray-300">
+          <div>• Hover over points for details</div>
+          <div>• Click and drag to rotate</div>
+          <div>• Scroll to zoom</div>
+        </div>
+      </div>
+
+      {/* Selected point info */}
+      {selectedInfo && (
+        <div className="absolute bottom-4 left-4 bg-blue-600 text-white p-3 rounded-lg">
+          <h4 className="font-bold">Selected Point</h4>
+          <div className="text-sm mt-1">
+            <div><strong>Label:</strong> {selectedInfo.label}</div>
+            <div><strong>Position:</strong> ({selectedInfo.position.join(', ')})</div>
+            <div><strong>Value:</strong> {JSON.stringify(selectedInfo.value)}</div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
