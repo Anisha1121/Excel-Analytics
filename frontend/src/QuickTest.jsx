@@ -1,4 +1,5 @@
 import React, { useState } from 'react'
+import Chart3D from './components/charts/Chart3D'
 
 function QuickTest() {
   const [result, setResult] = useState('')
@@ -82,6 +83,43 @@ function QuickTest() {
     setLoading(false)
   };
 
+  const test3DChart = () => {
+    const testData = {
+      labels: ['Entry 1', 'Entry 2', 'Entry 3', 'Entry 4', 'Entry 5'],
+      datasets: [{
+        data: [
+          { x: 1, y: 2, z: 3 },
+          { x: 2, y: 3, z: 1 },
+          { x: 3, y: 1, z: 2 },
+          { x: 4, y: 4, z: 4 },
+          { x: 5, y: 2, z: 3 }
+        ]
+      }],
+      originalData: [
+        { label: 'Entry 1', name: 'Product A', sales: 100, profit: 20 },
+        { label: 'Entry 2', name: 'Product B', sales: 150, profit: 30 },
+        { label: 'Entry 3', name: 'Product C', sales: 120, profit: 25 },
+        { label: 'Entry 4', name: 'Product D', sales: 200, profit: 40 },
+        { label: 'Entry 5', name: 'Product E', sales: 130, profit: 28 }
+      ]
+    };
+
+    const testConfig = {
+      chartType: 'scatter3d',
+      title: 'Test 3D Scatter Chart',
+      xAxis: 'Sales',
+      yAxis: 'Profit', 
+      zAxis: 'Performance'
+    };
+
+    setResult(
+      <div>
+        <p>Testing 3D Chart Component:</p>
+        <Chart3D chartData={testData} chartConfig={testConfig} />
+      </div>
+    );
+  };
+
   return (
     <div className="min-h-screen bg-gray-100 p-8">
       <div className="max-w-2xl mx-auto bg-white p-8 rounded-lg shadow">
@@ -133,14 +171,26 @@ function QuickTest() {
           >
             {loading ? 'Testing...' : 'Check Environment'}
           </button>
+          
+          <button 
+            onClick={test3DChart}
+            disabled={loading}
+            className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600 disabled:opacity-50 ml-4"
+          >
+            Test 3D Chart
+          </button>
         </div>
 
         {result && (
           <div className="mt-6">
             <h3 className="font-bold mb-2">Result:</h3>
-            <pre className="bg-gray-100 p-4 rounded text-sm overflow-auto">
-              {result}
-            </pre>
+            <div className="bg-gray-100 p-4 rounded text-sm overflow-auto">
+              {typeof result === 'string' ? (
+                <pre>{result}</pre>
+              ) : (
+                result
+              )}
+            </div>
           </div>
         )}
       </div>

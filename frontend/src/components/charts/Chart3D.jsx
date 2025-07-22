@@ -100,7 +100,6 @@ const InteractiveScatterPoint = ({ position, color, label, value, originalData, 
         color="white"
         anchorX="center"
         anchorY="middle"
-        font="/fonts/arial.woff"
       >
         {label}
       </Text>
@@ -219,6 +218,7 @@ const Surface3D = ({ data, width, height, colors }) => {
 const Chart3D = ({ chartData, chartConfig }) => {
   console.log('Chart3D component called with:', { chartData, chartConfig });
   const [selectedInfo, setSelectedInfo] = useState(null);
+  const [error, setError] = useState(null);
 
   const colors = [
     '#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7',
@@ -226,6 +226,17 @@ const Chart3D = ({ chartData, chartConfig }) => {
     '#FF7F50', '#20B2AA', '#778899', '#B0C4DE', '#FFFFE0',
     '#FF69B4', '#00CED1', '#32CD32', '#FFD700', '#DA70D6'
   ];
+
+  if (error) {
+    return (
+      <div className="h-96 w-full bg-red-50 rounded-lg flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-red-600 font-bold">3D Chart Error</p>
+          <p className="text-red-500 text-sm">{error}</p>
+        </div>
+      </div>
+    );
+  }
 
   if (!chartData || !chartConfig) {
     return (
@@ -237,6 +248,8 @@ const Chart3D = ({ chartData, chartConfig }) => {
 
   const render3DChart = () => {
     try {
+      console.log('Rendering 3D chart with type:', chartConfig.chartType);
+      
       switch (chartConfig.chartType) {
         case 'bar3d':
           if (!chartData.labels || !chartData.datasets || !chartData.datasets[0]) {
@@ -255,12 +268,16 @@ const Chart3D = ({ chartData, chartConfig }) => {
           return <group>{bars}</group>;
 
         case 'scatter3d':
+          console.log('Creating 3D scatter plot...');
           if (!chartData.datasets || !chartData.datasets[0] || !chartData.datasets[0].data) {
+            console.warn('No data for 3D scatter plot');
             return <div>No data for 3D scatter plot</div>;
           }
           
           // Enhanced scatter3D with proper labels and original data
           const scatterData = chartData.datasets[0].data;
+          console.log('Scatter data:', scatterData);
+          
           const scatter3DData = scatterData.map((point, index) => {
             if (typeof point === 'object' && point.x !== undefined && point.y !== undefined) {
               return {
@@ -277,6 +294,8 @@ const Chart3D = ({ chartData, chartConfig }) => {
             }
           });
           
+          console.log('3D scatter data:', scatter3DData);
+          
           // Generate labels from chart data
           const scatterLabels = chartData.labels || scatterData.map((point, index) => {
             if (typeof point === 'object' && point.label) {
@@ -284,6 +303,8 @@ const Chart3D = ({ chartData, chartConfig }) => {
             }
             return chartData.labels ? chartData.labels[index] : `Entry ${index + 1}`;
           });
+          
+          console.log('Scatter labels:', scatterLabels);
           
           // Pass original data for detailed tooltips
           const originalScatterData = scatterData.map((point, index) => {
@@ -297,6 +318,8 @@ const Chart3D = ({ chartData, chartConfig }) => {
               };
             }
           });
+          
+          console.log('Original scatter data:', originalScatterData);
           
           return (
             <Scatter3D 
@@ -325,10 +348,12 @@ const Chart3D = ({ chartData, chartConfig }) => {
           return <Surface3D data={surfaceData} width={10} height={10} colors={colors} />;
 
         default:
+          console.warn('Unknown 3D chart type:', chartConfig.chartType);
           return <div>Unknown 3D chart type: {chartConfig.chartType}</div>;
       }
     } catch (error) {
       console.error('Error rendering 3D chart:', error);
+      setError(error.message);
       return <div>Error rendering 3D chart: {error.message}</div>;
     }
   };
