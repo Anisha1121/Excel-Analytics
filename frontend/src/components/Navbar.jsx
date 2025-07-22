@@ -1,15 +1,26 @@
 import { Link, useLocation } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
-import { LogOut, BarChart3, Upload, Home, Settings } from 'lucide-react'
+import { LogOut, BarChart3, Upload, Home, Settings, User, Key, ChevronDown } from 'lucide-react'
+import { useState } from 'react'
+import ChangePassword from './ChangePassword'
 
 const Navbar = () => {
   const { user, logout, isAuthenticated, isAdmin } = useAuth()
   const location = useLocation()
+  const [showUserMenu, setShowUserMenu] = useState(false)
+  const [showChangePassword, setShowChangePassword] = useState(false)
+  const [successMessage, setSuccessMessage] = useState('')
 
   const isActive = (path) => location.pathname === path
 
   const handleLogout = () => {
     logout()
+    setShowUserMenu(false)
+  }
+
+  const handlePasswordChangeSuccess = (message) => {
+    setSuccessMessage(message)
+    setTimeout(() => setSuccessMessage(''), 3000)
   }
 
   return (
@@ -81,18 +92,44 @@ const Navbar = () => {
 
           {/* User Menu */}
           <div className="flex items-center space-x-4">
+            {successMessage && (
+              <div className="bg-green-100 border border-green-400 text-green-700 px-3 py-1 rounded text-sm">
+                {successMessage}
+              </div>
+            )}
+            
             {isAuthenticated ? (
-              <div className="flex items-center space-x-3">
-                <span className="text-sm text-gray-600">
-                  Welcome, {user?.username}
-                </span>
+              <div className="relative">
                 <button
-                  onClick={handleLogout}
-                  className="flex items-center space-x-1 px-3 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-md transition-colors"
+                  onClick={() => setShowUserMenu(!showUserMenu)}
+                  className="flex items-center space-x-2 px-3 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-md transition-colors"
                 >
-                  <LogOut className="h-4 w-4" />
-                  <span>Logout</span>
+                  <User className="h-4 w-4" />
+                  <span>{user?.username}</span>
+                  <ChevronDown className="h-4 w-4" />
                 </button>
+
+                {showUserMenu && (
+                  <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-50 border">
+                    <button
+                      onClick={() => {
+                        setShowChangePassword(true)
+                        setShowUserMenu(false)
+                      }}
+                      className="flex items-center space-x-2 w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                    >
+                      <Key className="h-4 w-4" />
+                      <span>Change Password</span>
+                    </button>
+                    <button
+                      onClick={handleLogout}
+                      className="flex items-center space-x-2 w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                    >
+                      <LogOut className="h-4 w-4" />
+                      <span>Logout</span>
+                    </button>
+                  </div>
+                )}
               </div>
             ) : (
               <div className="flex items-center space-x-2">
@@ -113,6 +150,22 @@ const Navbar = () => {
           </div>
         </div>
       </div>
+
+      {/* Change Password Modal */}
+      {showChangePassword && (
+        <ChangePassword
+          onClose={() => setShowChangePassword(false)}
+          onSuccess={handlePasswordChangeSuccess}
+        />
+      )}
+
+      {/* Click outside to close menu */}
+      {showUserMenu && (
+        <div
+          className="fixed inset-0 z-40"
+          onClick={() => setShowUserMenu(false)}
+        />
+      )}
     </nav>
   )
 }
