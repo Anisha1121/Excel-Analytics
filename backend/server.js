@@ -71,10 +71,15 @@ mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/excel-ana
   });
 
 // Routes
+console.log('📋 Registering routes...');
 app.use('/api/auth', authRoutes);
+console.log('✅ Auth routes registered at /api/auth');
 app.use('/api/files', fileRoutes);
+console.log('✅ File routes registered at /api/files');
 app.use('/api/users', userRoutes);
+console.log('✅ User routes registered at /api/users');
 app.use('/api/admin', adminRoutes);
+console.log('✅ Admin routes registered at /api/admin');
 
 // Test route for immediate debugging
 app.post('/api/test', (req, res) => {
@@ -84,6 +89,29 @@ app.post('/api/test', (req, res) => {
     body: req.body,
     timestamp: new Date().toISOString()
   });
+});
+
+// Debug route to list all routes
+app.get('/api/routes', (req, res) => {
+  const routes = [];
+  app._router.stack.forEach((middleware) => {
+    if (middleware.route) {
+      routes.push({
+        path: middleware.route.path,
+        methods: Object.keys(middleware.route.methods)
+      });
+    } else if (middleware.name === 'router') {
+      middleware.handle.stack.forEach((handler) => {
+        if (handler.route) {
+          routes.push({
+            path: handler.route.path,
+            methods: Object.keys(handler.route.methods)
+          });
+        }
+      });
+    }
+  });
+  res.json({ routes, timestamp: new Date().toISOString() });
 });
 
 // Health check route
@@ -99,15 +127,6 @@ app.get('/api/health', (req, res) => {
 // Root route
 app.get('/', (req, res) => {
   res.json({ message: 'Excel Analytics API Server' });
-});
-
-// Health check
-app.get('/api/health', (req, res) => {
-  res.json({
-    status: 'OK',
-    message: 'Excel Analytics API is running',
-    timestamp: new Date().toISOString()
-  });
 });
 
 // 404 handler
