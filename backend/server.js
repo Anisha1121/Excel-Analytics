@@ -24,7 +24,8 @@ app.use(helmet());
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: 100, // limit each IP to 100 requests per windowMs
-  message: 'Too many requests from this IP, please try again later.'
+  message: 'Too many requests from this IP, please try again later.',
+  trustProxy: true // Fix for deployment platforms
 });
 app.use('/api/', limiter);
 
@@ -52,6 +53,12 @@ if (process.env.NODE_ENV === 'development') {
 
 // Static files
 app.use('/uploads', express.static('uploads'));
+
+// Debug middleware to log all requests (BEFORE routes)
+app.use('/api', (req, res, next) => {
+  console.log(`🔍 ${req.method} ${req.originalUrl} - Body:`, req.body);
+  next();
+});
 
 // Database connection
 mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/excel-analytics')
