@@ -1,7 +1,7 @@
 import { useState, useCallback } from 'react'
 import { useDropzone } from 'react-dropzone'
 import { fileService } from '../services/fileService'
-import { Upload as UploadIcon, FileSpreadsheet, CheckCircle, AlertCircle } from 'lucide-react'
+import { Upload as UploadIcon, FileSpreadsheet, CheckCircle, AlertCircle, Sparkles, CloudUpload } from 'lucide-react'
 
 const Upload = () => {
   const [uploading, setUploading] = useState(false)
@@ -53,145 +53,195 @@ const Upload = () => {
   })
 
   return (
-    <div className="max-w-4xl mx-auto">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900">Upload Excel File</h1>
-        <p className="text-gray-600 mt-2">
-          Upload your Excel file to start analyzing and creating visualizations.
+    <div className="max-w-4xl mx-auto px-4 py-8">
+      {/* Beautiful Header */}
+      <div className="page-header fade-in-up">
+        <h1 className="page-title flex items-center justify-center">
+          <CloudUpload className="h-12 w-12 mr-4 text-blue-500" />
+          Upload Excel File
+        </h1>
+        <p className="page-subtitle">
+          Transform your spreadsheet data into powerful visualizations and insights. 
+          Simply drag and drop or click to upload your Excel file.
         </p>
       </div>
 
-      {/* Upload Area */}
-      <div className="bg-white rounded-lg shadow p-8">
+      {/* Enhanced Upload Area */}
+      <div className="modern-card">
         <div
           {...getRootProps()}
-          className={`dropzone ${isDragActive ? 'active' : ''} ${uploading ? 'pointer-events-none opacity-50' : ''}`}
+          className={`dropzone ${isDragActive ? 'active' : ''} ${uploading ? 'pointer-events-none opacity-60' : ''}`}
         >
           <input {...getInputProps()} />
           <div className="text-center">
             {uploading ? (
-              <div className="flex flex-col items-center">
-                <div className="spinner mb-4"></div>
-                <p className="text-gray-600">Uploading and processing file...</p>
+              <div className="flex flex-col items-center space-y-6">
+                <div className="relative">
+                  <div className="w-20 h-20 rounded-full border-4 border-blue-200 border-t-blue-600 animate-spin"></div>
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <Sparkles className="h-8 w-8 text-blue-600 animate-pulse" />
+                  </div>
+                </div>
+                <div>
+                  <h3 className="text-xl font-semibold text-gray-700 mb-2">Processing Your File...</h3>
+                  <p className="text-gray-600">We're analyzing your data and preparing it for visualization</p>
+                </div>
               </div>
             ) : (
               <>
-                <UploadIcon className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-                <h3 className="text-lg font-medium text-gray-900 mb-2">
-                  {isDragActive ? 'Drop the file here' : 'Drop your Excel file here'}
-                </h3>
-                <p className="text-gray-600 mb-4">
-                  or click to browse and select a file
-                </p>
-                <div className="text-sm text-gray-500">
-                  <p>Supports: .xls, .xlsx files</p>
-                  <p>Maximum file size: 10MB</p>
+                <div className="mb-8">
+                  <div className="w-32 h-32 mx-auto mb-6 bg-gradient-to-br from-blue-100 via-purple-50 to-indigo-100 rounded-2xl flex items-center justify-center shadow-lg">
+                    <UploadIcon className={`h-16 w-16 ${isDragActive ? 'text-blue-600 animate-bounce' : 'text-gray-400'} transition-all duration-300`} />
+                  </div>
+                  <h3 className="text-2xl font-bold text-gray-900 mb-3">
+                    {isDragActive ? 'Drop it like it\'s hot! 🔥' : 'Upload Your Excel File'}
+                  </h3>
+                  <p className="text-lg text-gray-600 mb-6">
+                    {isDragActive ? 'Release to upload your file' : 'Drag and drop your file here, or click to browse'}
+                  </p>
                 </div>
+                
+                <div className="flex flex-wrap justify-center gap-4 mb-8">
+                  <div className="flex items-center space-x-2 bg-green-50 px-4 py-2 rounded-full">
+                    <FileSpreadsheet className="h-5 w-5 text-green-600" />
+                    <span className="text-sm font-medium text-green-700">.xlsx files</span>
+                  </div>
+                  <div className="flex items-center space-x-2 bg-blue-50 px-4 py-2 rounded-full">
+                    <FileSpreadsheet className="h-5 w-5 text-blue-600" />
+                    <span className="text-sm font-medium text-blue-700">.xls files</span>
+                  </div>
+                  <div className="flex items-center space-x-2 bg-purple-50 px-4 py-2 rounded-full">
+                    <Sparkles className="h-5 w-5 text-purple-600" />
+                    <span className="text-sm font-medium text-purple-700">Max 10MB</span>
+                  </div>
+                </div>
+
+                {!isDragActive && (
+                  <button className="btn-primary">
+                    <UploadIcon className="h-5 w-5" />
+                    Choose File
+                  </button>
+                )}
               </>
             )}
           </div>
         </div>
 
-        {/* Error Message */}
+        {/* Enhanced Error Message */}
         {error && (
-          <div className="mt-6 bg-red-50 border border-red-200 rounded-md p-4">
-            <div className="flex items-center">
-              <AlertCircle className="h-5 w-5 text-red-600 mr-2" />
-              <span className="text-red-700">{error}</span>
-            </div>
+          <div className="mt-8 error-message fade-in-up">
+            <AlertCircle className="h-5 w-5" />
+            <span className="font-medium">{error}</span>
           </div>
         )}
 
-        {/* Success Message */}
+        {/* Beautiful Success Message */}
         {uploadResult && (
-          <div className="mt-6 bg-green-50 border border-green-200 rounded-md p-4">
-            <div className="flex items-center mb-3">
-              <CheckCircle className="h-5 w-5 text-green-600 mr-2" />
-              <span className="text-green-700 font-medium">File uploaded successfully!</span>
-            </div>
-            
-            <div className="bg-white rounded-md p-4 mt-4">
-              <h4 className="text-sm font-medium text-gray-900 mb-2">File Details:</h4>
-              <div className="grid grid-cols-2 gap-4 text-sm">
-                <div>
-                  <span className="text-gray-600">File name:</span>
-                  <p className="font-medium">{uploadResult.file?.originalName}</p>
+          <div className="mt-8 modern-card border-l-4 border-green-500 fade-in-up">
+            <div className="p-6">
+              <div className="flex items-center mb-4">
+                <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mr-4">
+                  <CheckCircle className="h-6 w-6 text-green-600" />
                 </div>
                 <div>
-                  <span className="text-gray-600">File size:</span>
-                  <p className="font-medium">{(uploadResult.file?.size / 1024).toFixed(1)} KB</p>
-                </div>
-                <div>
-                  <span className="text-gray-600">Sheets detected:</span>
-                  <p className="font-medium">{uploadResult.file?.metadata?.sheets?.length || 0}</p>
-                </div>
-                <div>
-                  <span className="text-gray-600">Total rows:</span>
-                  <p className="font-medium">{uploadResult.file?.metadata?.rowCount || 0}</p>
+                  <h3 className="text-lg font-semibold text-gray-900">Upload Successful! 🎉</h3>
+                  <p className="text-gray-600">Your file has been processed and is ready for analysis</p>
                 </div>
               </div>
-
-              {uploadResult.file?.metadata?.sheets && (
-                <div className="mt-4">
-                  <span className="text-gray-600 text-sm">Available sheets:</span>
-                  <div className="flex flex-wrap gap-2 mt-1">
-                    {uploadResult.file.metadata.sheets.map((sheet, index) => (
-                      <span
-                        key={index}
-                        className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800"
-                      >
-                        <FileSpreadsheet className="h-3 w-3 mr-1" />
-                        {sheet}
-                      </span>
-                    ))}
+              
+              <div className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl p-6 mb-6">
+                <h4 className="font-semibold text-gray-900 mb-4 flex items-center">
+                  <FileSpreadsheet className="h-5 w-5 text-green-600 mr-2" />
+                  File Details
+                </h4>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <div className="text-center">
+                    <div className="text-2xl font-bold text-green-600">{uploadResult.file?.originalName?.split('.')[0]}</div>
+                    <div className="text-sm text-gray-600">File Name</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-2xl font-bold text-blue-600">{(uploadResult.file?.size / 1024).toFixed(1)}</div>
+                    <div className="text-sm text-gray-600">Size (KB)</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-2xl font-bold text-purple-600">{uploadResult.file?.metadata?.sheets?.length || 0}</div>
+                    <div className="text-sm text-gray-600">Sheets</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-2xl font-bold text-orange-600">{uploadResult.file?.metadata?.rowCount || 0}</div>
+                    <div className="text-sm text-gray-600">Total Rows</div>
                   </div>
                 </div>
-              )}
-            </div>
 
-            <div className="mt-4 flex space-x-3">
-              <a
-                href="/analytics"
-                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
-              >
-                Create Visualization
-              </a>
-              <button
-                onClick={() => {
-                  setUploadResult(null)
-                  setError('')
-                }}
-                className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
-              >
-                Upload Another File
-              </button>
+                {uploadResult.file?.metadata?.sheets && (
+                  <div className="mt-6">
+                    <p className="text-sm font-medium text-gray-700 mb-3">Available Worksheets:</p>
+                    <div className="flex flex-wrap gap-2">
+                      {uploadResult.file.metadata.sheets.map((sheet, index) => (
+                        <span
+                          key={index}
+                          className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-white border border-green-200 text-green-700 shadow-sm"
+                        >
+                          <FileSpreadsheet className="h-4 w-4 mr-2" />
+                          {sheet}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <div className="flex flex-col sm:flex-row gap-4">
+                <a
+                  href="/analytics"
+                  className="btn-primary flex-1 justify-center"
+                >
+                  <Sparkles className="h-5 w-5" />
+                  Create Visualizations
+                </a>
+                <button
+                  onClick={() => {
+                    setUploadResult(null)
+                    setError('')
+                  }}
+                  className="btn-secondary flex-1 justify-center"
+                >
+                  Upload Another File
+                </button>
+              </div>
             </div>
           </div>
         )}
       </div>
 
-      {/* Upload Tips */}
-      <div className="mt-8 bg-blue-50 rounded-lg p-6">
-        <h3 className="text-lg font-medium text-blue-900 mb-4">Upload Tips</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-blue-800">
-          <div>
-            <h4 className="font-medium mb-2">Supported Formats:</h4>
-            <ul className="space-y-1">
-              <li>• Excel 97-2003 (.xls)</li>
-              <li>• Excel 2007+ (.xlsx)</li>
-            </ul>
+      {/* Info Cards */}
+      {!uploadResult && !uploading && (
+        <div className="mt-12 grid grid-cols-1 md:grid-cols-3 gap-6 fade-in-up">
+          <div className="modern-card p-6 text-center">
+            <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <UploadIcon className="h-8 w-8 text-blue-600" />
+            </div>
+            <h3 className="font-semibold text-gray-900 mb-2">Easy Upload</h3>
+            <p className="text-gray-600 text-sm">Simply drag and drop your Excel files or click to browse and select</p>
           </div>
-          <div>
-            <h4 className="font-medium mb-2">Best Practices:</h4>
-            <ul className="space-y-1">
-              <li>• Use clear column headers</li>
-              <li>• Avoid merged cells</li>
-              <li>• Keep data organized in tables</li>
-              <li>• Remove unnecessary formatting</li>
-            </ul>
+          
+          <div className="modern-card p-6 text-center">
+            <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <Sparkles className="h-8 w-8 text-green-600" />
+            </div>
+            <h3 className="font-semibold text-gray-900 mb-2">Smart Processing</h3>
+            <p className="text-gray-600 text-sm">Our AI analyzes your data structure and suggests optimal visualizations</p>
+          </div>
+          
+          <div className="modern-card p-6 text-center">
+            <div className="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <FileSpreadsheet className="h-8 w-8 text-purple-600" />
+            </div>
+            <h3 className="font-semibold text-gray-900 mb-2">Multiple Formats</h3>
+            <p className="text-gray-600 text-sm">Support for .xls and .xlsx files up to 10MB in size</p>
           </div>
         </div>
-      </div>
+      )}
     </div>
   )
 }
