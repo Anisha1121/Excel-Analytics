@@ -296,13 +296,28 @@ const Chart3D = ({ chartData, chartConfig }) => {
           
           console.log('3D scatter data:', scatter3DData);
           
-          // Generate labels from chart data
-          const scatterLabels = chartData.labels || scatterData.map((point, index) => {
-            if (typeof point === 'object' && point.label) {
-              return point.label;
-            }
-            return chartData.labels ? chartData.labels[index] : `Entry ${index + 1}`;
-          });
+          // Generate labels from chart data with better logic
+          const scatterLabels = [];
+          if (chartData.labels) {
+            // Use provided labels
+            scatterLabels.push(...chartData.labels);
+          } else {
+            // Generate labels from original data or scatter data
+            scatterData.forEach((point, index) => {
+              if (typeof point === 'object' && point.label) {
+                scatterLabels.push(point.label);
+              } else if (chartData.originalData && chartData.originalData[index]) {
+                const original = chartData.originalData[index];
+                // Try to find a meaningful label from original data
+                const label = original.label || original.name || original.title || 
+                             original.product || original.item || original.category || 
+                             `Data Point ${index + 1}`;
+                scatterLabels.push(String(label));
+              } else {
+                scatterLabels.push(`Data Point ${index + 1}`);
+              }
+            });
+          }
           
           console.log('Scatter labels:', scatterLabels);
           
@@ -409,20 +424,39 @@ const Chart3D = ({ chartData, chartConfig }) => {
       {/* Legend and Controls */}
       <div className="absolute top-4 right-4 bg-black bg-opacity-70 text-white p-3 rounded-lg max-w-xs">
         <h4 className="font-bold mb-2">Chart Legend</h4>
-        {chartConfig.chartType === 'scatter3d' && chartData.labels && (
+        {chartConfig.chartType === 'scatter3d' && (
           <div className="space-y-1 max-h-48 overflow-y-auto">
-            {chartData.labels.slice(0, 10).map((label, index) => (
-              <div key={index} className="flex items-center text-xs">
-                <div 
-                  className="w-3 h-3 rounded-full mr-2 flex-shrink-0"
-                  style={{ backgroundColor: colors[index % colors.length] }}
-                />
-                <span className="truncate">{label}</span>
-              </div>
-            ))}
-            {chartData.labels.length > 10 && (
+            {/* Show first 10 labels with their data */}
+            {chartData.originalData ? (
+              chartData.originalData.slice(0, 10).map((item, index) => (
+                <div key={index} className="flex items-center text-xs">
+                  <div 
+                    className="w-3 h-3 rounded-full mr-2 flex-shrink-0"
+                    style={{ backgroundColor: colors[index % colors.length] }}
+                  />
+                  <span className="truncate">
+                    {item.label || item.name || item.title || item.product || `Row ${item.rowIndex || index + 1}`}
+                  </span>
+                </div>
+              ))
+            ) : chartData.labels ? (
+              chartData.labels.slice(0, 10).map((label, index) => (
+                <div key={index} className="flex items-center text-xs">
+                  <div 
+                    className="w-3 h-3 rounded-full mr-2 flex-shrink-0"
+                    style={{ backgroundColor: colors[index % colors.length] }}
+                  />
+                  <span className="truncate">{label}</span>
+                </div>
+              ))
+            ) : (
+              <div className="text-xs text-gray-400">No labels available</div>
+            )}
+            
+            {((chartData.originalData && chartData.originalData.length > 10) || 
+              (chartData.labels && chartData.labels.length > 10)) && (
               <div className="text-xs text-gray-400">
-                ...and {chartData.labels.length - 10} more
+                ...and {(chartData.originalData?.length || chartData.labels?.length || 0) - 10} more
               </div>
             )}
           </div>

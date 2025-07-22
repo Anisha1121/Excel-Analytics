@@ -101,16 +101,57 @@ const Analytics = () => {
     ]
 
     if (chartType === 'scatter' || chartType === 'scatter3d') {
-      // For scatter plots, show all data points
+      // For scatter plots, show all data points with original row data
       const scatterData = data
         .filter(row => row[xAxis] && row[yAxis])
-        .map(row => ({
+        .map((row, index) => ({
           x: parseFloat(row[xAxis]) || 0,
-          y: parseFloat(row[yAxis]) || 0
+          y: parseFloat(row[yAxis]) || 0,
+          z: chartType === 'scatter3d' ? (parseFloat(row[Object.keys(row)[2]]) || Math.random() * 10) : undefined
         }))
         .slice(0, 100) // Limit to 100 points for performance
 
+      // Create labels from the actual data - try to find a meaningful identifier
+      const labels = data
+        .filter(row => row[xAxis] && row[yAxis])
+        .slice(0, 100)
+        .map((row, index) => {
+          // Try to use common identifier columns first
+          const possibleLabels = ['name', 'title', 'product', 'item', 'category', 'id', 'label'];
+          for (const labelCol of possibleLabels) {
+            if (row[labelCol]) {
+              return String(row[labelCol]);
+            }
+          }
+          
+          // If no common identifier, use the first text column
+          const textColumns = Object.keys(row).filter(key => 
+            key !== xAxis && key !== yAxis && 
+            row[key] && 
+            typeof row[key] === 'string' && 
+            row[key].trim() !== ''
+          );
+          
+          if (textColumns.length > 0) {
+            return String(row[textColumns[0]]);
+          }
+          
+          // Last resort: use row index from Excel
+          return `Row ${index + 1}`;
+        });
+
+      // Store original data for detailed tooltips
+      const originalData = data
+        .filter(row => row[xAxis] && row[yAxis])
+        .slice(0, 100)
+        .map((row, index) => ({
+          ...row,
+          label: labels[index],
+          rowIndex: index + 1
+        }));
+
       return {
+        labels: labels,
         datasets: [
           {
             label: `${yAxis} vs ${xAxis}`,
@@ -120,6 +161,7 @@ const Analytics = () => {
             pointRadius: 4,
           },
         ],
+        originalData: originalData
       }
     }
 
