@@ -184,6 +184,9 @@
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
+    line-height: 1.2;
+    padding: 0.1em 0;
+    display: inline-block;
   }
   
   .page-subtitle {
