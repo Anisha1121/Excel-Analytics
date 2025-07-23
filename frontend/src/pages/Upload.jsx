@@ -1,7 +1,7 @@
 import { useState, useCallback } from 'react'
 import { useDropzone } from 'react-dropzone'
 import { fileService } from '../services/fileService'
-import { Upload as UploadIcon, FileSpreadsheet, CheckCircle, AlertCircle, Sparkles, CloudUpload } from 'lucide-react'
+import { Upload as UploadIcon, FileSpreadsheet, CheckCircle, AlertCircle, Sparkles, Cloud } from 'lucide-react'
 
 const Upload = () => {
   const [uploading, setUploading] = useState(false)
@@ -57,7 +57,7 @@ const Upload = () => {
       {/* Beautiful Header */}
       <div className="page-header fade-in-up">
         <h1 className="page-title flex items-center justify-center">
-          <CloudUpload className="h-12 w-12 mr-4 text-blue-500" />
+          <Cloud className="h-12 w-12 mr-4 text-blue-500" />
           Upload Excel File
         </h1>
         <p className="page-subtitle">
