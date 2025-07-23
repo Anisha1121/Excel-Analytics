@@ -12,7 +12,7 @@ import {
   Legend,
 } from 'chart.js';
 import { Bar, Line, Pie, Scatter } from 'react-chartjs-2';
-import Chart3D from './Chart3D';
+import Chart3DSimple from './Chart3DSimple';
 
 // Register Chart.js components
 ChartJS.register(
@@ -174,7 +174,7 @@ const ChartDisplay = ({ chartData, chartConfig }) => {
   const renderChart = () => {
     // Check if it's a 3D chart - fix the property name
     if (['bar3d', 'scatter3d', 'surface3d'].includes(chartConfig.chartType)) {
-      return <Chart3D chartData={chartData} chartConfig={chartConfig} />;
+      return <Chart3DSimple chartData={chartData} chartConfig={chartConfig} />;
     }
 
     // Render 2D charts

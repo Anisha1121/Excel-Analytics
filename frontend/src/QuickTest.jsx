@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import Chart3D from './components/charts/Chart3D'
+import Chart3DSimple from './components/charts/Chart3DSimple'
 
 function QuickTest() {
   const [result, setResult] = useState('')
@@ -115,7 +115,7 @@ function QuickTest() {
     setResult(
       <div>
         <p>Testing Surface 3D Chart Component:</p>
-        <Chart3D chartData={testData} chartConfig={testConfig} />
+        <Chart3DSimple chartData={testData} chartConfig={testConfig} />
       </div>
     );
   };

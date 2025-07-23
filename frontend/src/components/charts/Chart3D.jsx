@@ -1,6 +1,5 @@
 import React, { useMemo, useRef, useState } from 'react';
-import { Canvas, useFrame, useThree } from '@react-three/fiber';
-import { OrbitControls, Text, Html } from '@react-three/drei';
+import { Canvas, useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 
 const Bar3D = ({ position, height, color, label, value }) => {
