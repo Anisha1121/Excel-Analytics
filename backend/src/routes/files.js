@@ -4,7 +4,8 @@ const {
   getFiles,
   getFileData,
   deleteFile,
-  generateChart
+  generateChart,
+  saveChart
 } = require('../controllers/fileController');
 const { auth } = require('../middleware/auth');
 const { upload, handleUploadError } = require('../middleware/upload');
@@ -20,5 +21,6 @@ router.get('/', getFiles);
 router.get('/:id', getFileData);
 router.delete('/:id', deleteFile);
 router.post('/:id/analyze', generateChart);
+router.post('/:id/save-chart', saveChart);
 
 module.exports = router;

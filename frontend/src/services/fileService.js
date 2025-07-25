@@ -51,5 +51,27 @@ export const fileService = {
     } catch (error) {
       throw new Error(error.response?.data?.message || 'Failed to generate chart')
     }
+  },
+
+  async saveChart(fileId, chartConfig, chartData = null) {
+    try {
+      const payload = {
+        ...chartConfig,
+        chartData: chartData
+      }
+      const response = await api.post(`/files/${fileId}/save-chart`, payload)
+      return response.data
+    } catch (error) {
+      throw new Error(error.response?.data?.message || 'Failed to save chart')
+    }
+  },
+
+  async getSavedCharts() {
+    try {
+      const response = await api.get('/users/analytics')
+      return response.data
+    } catch (error) {
+      throw new Error(error.response?.data?.message || 'Failed to get saved charts')
+    }
   }
 }

@@ -325,10 +325,116 @@ const generateChart = async (req, res) => {
   }
 };
 
+// Save chart manually (for manual save button)
+const saveChart = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { xAxis, yAxis, chartType, title, description, chartData } = req.body;
+
+    // Validate input
+    if (!xAxis || !yAxis || !chartType) {
+      return res.status(400).json({
+        success: false,
+        message: 'xAxis, yAxis, and chartType are required'
+      });
+    }
+
+    const file = await File.findOne({ 
+      _id: id, 
+      userId: req.user._id,
+      isProcessed: true 
+    });
+
+    if (!file) {
+      return res.status(404).json({
+        success: false,
+        message: 'File not found'
+      });
+    }
+
+    // Check if a similar chart already exists
+    const existingChart = await Analytics.findOne({
+      userId: req.user._id,
+      fileId: file._id,
+      chartType,
+      xAxis,
+      yAxis
+    });
+
+    if (existingChart) {
+      // Update existing chart
+      existingChart.title = title || `${yAxis} vs ${xAxis}`;
+      existingChart.description = description || '';
+      existingChart.chartConfig = {
+        type: chartType,
+        xAxis,
+        yAxis,
+        title: existingChart.title,
+        description: existingChart.description,
+        chartData: chartData || null
+      };
+      existingChart.updatedAt = new Date();
+      
+      await existingChart.save();
+
+      res.json({
+        success: true,
+        message: 'Chart updated successfully',
+        analytics: {
+          _id: existingChart._id,
+          chartConfig: existingChart.chartConfig,
+          createdAt: existingChart.createdAt,
+          updatedAt: existingChart.updatedAt
+        }
+      });
+    } else {
+      // Create new chart
+      const chartConfig = {
+        type: chartType,
+        xAxis,
+        yAxis,
+        title: title || `${yAxis} vs ${xAxis}`,
+        description: description || '',
+        chartData: chartData || null
+      };
+
+      const analytics = new Analytics({
+        userId: req.user._id,
+        fileId: file._id,
+        chartType,
+        xAxis,
+        yAxis,
+        chartConfig,
+        title: chartConfig.title,
+        description: chartConfig.description
+      });
+
+      await analytics.save();
+
+      res.json({
+        success: true,
+        message: 'Chart saved successfully',
+        analytics: {
+          _id: analytics._id,
+          chartConfig,
+          createdAt: analytics.createdAt
+        }
+      });
+    }
+  } catch (error) {
+    console.error('Save chart error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error'
+    });
+  }
+};
+
 module.exports = {
   uploadFile,
   getFiles,
   getFileData,
   deleteFile,
-  generateChart
+  generateChart,
+  saveChart
 };

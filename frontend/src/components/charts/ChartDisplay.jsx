@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -13,6 +13,7 @@ import {
 } from 'chart.js';
 import { Bar, Line, Pie, Scatter } from 'react-chartjs-2';
 import Chart3DSimple from './Chart3DSimple';
+import { fileService } from '../../services/fileService';
 
 // Register Chart.js components
 ChartJS.register(
@@ -27,9 +28,11 @@ ChartJS.register(
   Legend
 );
 
-const ChartDisplay = ({ chartData, chartConfig }) => {
-  console.log('ChartDisplay received:', { chartData, chartConfig });
+const ChartDisplay = ({ chartData, chartConfig, fileId }) => {
+  console.log('ChartDisplay received:', { chartData, chartConfig, fileId });
   const [selectedPoint, setSelectedPoint] = React.useState(null);
+  const [saveLoading, setSaveLoading] = useState(false);
+  const [saveMessage, setSaveMessage] = useState('');
 
   if (!chartData || !chartConfig) {
     return (
@@ -261,14 +264,43 @@ const ChartDisplay = ({ chartData, chartConfig }) => {
         </button>
         
         <button
-          onClick={() => {
-            // Save chart configuration
-            console.log('Saving chart...', chartConfig);
+          onClick={async () => {
+            if (!fileId) {
+              setSaveMessage('Error: File ID not available');
+              setTimeout(() => setSaveMessage(''), 3000);
+              return;
+            }
+
+            setSaveLoading(true);
+            setSaveMessage('');
+            
+            try {
+              const result = await fileService.saveChart(fileId, chartConfig, chartData);
+              setSaveMessage('Chart saved successfully!');
+              console.log('Chart saved:', result);
+            } catch (error) {
+              console.error('Error saving chart:', error);
+              setSaveMessage(error.message || 'Failed to save chart');
+            } finally {
+              setSaveLoading(false);
+              setTimeout(() => setSaveMessage(''), 3000);
+            }
           }}
-          className="px-4 py-2 text-sm font-medium text-white bg-primary-600 border border-transparent rounded-md hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
+          disabled={saveLoading}
+          className="px-4 py-2 text-sm font-medium text-white bg-primary-600 border border-transparent rounded-md hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          Save Chart
+          {saveLoading ? 'Saving...' : 'Save Chart'}
         </button>
+        
+        {saveMessage && (
+          <div className={`mt-2 p-2 rounded text-sm ${
+            saveMessage.includes('Error') || saveMessage.includes('Failed') 
+              ? 'bg-red-100 text-red-700' 
+              : 'bg-green-100 text-green-700'
+          }`}>
+            {saveMessage}
+          </div>
+        )}
       </div>
     </div>
   );

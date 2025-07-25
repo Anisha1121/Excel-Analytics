@@ -516,6 +516,7 @@ const Analytics = () => {
           <ChartDisplay 
             chartData={generatedChart.data} 
             chartConfig={generatedChart.config} 
+            fileId={selectedFile}
           />
         </div>
       )}
