@@ -102,100 +102,69 @@ const SimpleScatterPoint = ({ position, color, label, onHover, showAnimation }) 
   );
 };
 
-// Axes with labels
-const AxesHelper = ({ xLabel = 'X-Axis', yLabel = 'Y-Axis', zLabel = 'Z-Axis' }) => {
-  const axisLength = 8;
+// Fixed Grid and Axes - Combined into one stable component
+const GridAndAxes = ({ xLabel = 'X-Axis', yLabel = 'Y-Axis', zLabel = 'Z-Axis' }) => {
+  const gridRef = useRef();
   
   return (
     <group>
-      {/* X-Axis (Red) */}
+      {/* Grid Helper - Fixed and non-draggable */}
+      <gridHelper 
+        ref={gridRef}
+        args={[20, 20, '#444444', '#666666']} 
+        position={[0, 0, 0]}
+      />
+      
+      {/* X-Axis Line (Red) */}
       <Line
-        points={[[-axisLength, 0, 0], [axisLength, 0, 0]]}
+        points={[[-10, 0, 0], [10, 0, 0]]}
         color="red"
-        lineWidth={3}
+        lineWidth={5}
       />
       <Text
-        position={[axisLength + 1, 0, 0]}
-        fontSize={0.5}
+        position={[11, 0, 0]}
+        fontSize={0.6}
         color="red"
         anchorX="center"
         anchorY="middle"
+        font="Arial"
       >
         {xLabel}
       </Text>
       
-      {/* Y-Axis (Green) */}
+      {/* Y-Axis Line (Green) */}
       <Line
-        points={[[0, -axisLength, 0], [0, axisLength, 0]]}
+        points={[[0, 0, 0], [0, 10, 0]]}
         color="green"
-        lineWidth={3}
+        lineWidth={5}
       />
       <Text
-        position={[0, axisLength + 1, 0]}
-        fontSize={0.5}
+        position={[0, 11, 0]}
+        fontSize={0.6}
         color="green"
         anchorX="center"
         anchorY="middle"
+        font="Arial"
       >
         {yLabel}
       </Text>
       
-      {/* Z-Axis (Blue) */}
+      {/* Z-Axis Line (Blue) */}
       <Line
-        points={[[0, 0, -axisLength], [0, 0, axisLength]]}
+        points={[[0, 0, -10], [0, 0, 10]]}
         color="blue"
-        lineWidth={3}
+        lineWidth={5}
       />
       <Text
-        position={[0, 0, axisLength + 1]}
-        fontSize={0.5}
+        position={[0, 0, 11]}
+        fontSize={0.6}
         color="blue"
         anchorX="center"
         anchorY="middle"
+        font="Arial"
       >
         {zLabel}
       </Text>
-    </group>
-  );
-};
-
-// Draggable Grid
-const DraggableGrid = ({ gridSize = 20, divisions = 20 }) => {
-  const gridRef = useRef();
-  const [isDragging, setIsDragging] = useState(false);
-  const [dragStart, setDragStart] = useState([0, 0]);
-
-  const handlePointerDown = (e) => {
-    setIsDragging(true);
-    setDragStart([e.point.x, e.point.z]);
-    e.stopPropagation();
-  };
-
-  const handlePointerUp = () => {
-    setIsDragging(false);
-  };
-
-  const handlePointerMove = (e) => {
-    if (isDragging && gridRef.current) {
-      const deltaX = e.point.x - dragStart[0];
-      const deltaZ = e.point.z - dragStart[1];
-      gridRef.current.position.x += deltaX * 0.1;
-      gridRef.current.position.z += deltaZ * 0.1;
-    }
-  };
-
-  return (
-    <group 
-      ref={gridRef}
-      onPointerDown={handlePointerDown}
-      onPointerUp={handlePointerUp}
-      onPointerMove={handlePointerMove}
-    >
-      <gridHelper args={[gridSize, divisions]} />
-      <mesh position={[0, -0.01, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-        <planeGeometry args={[gridSize, gridSize]} />
-        <meshBasicMaterial color="#333333" transparent opacity={0.1} />
-      </mesh>
     </group>
   );
 };
@@ -233,11 +202,11 @@ const Chart3DSimple = ({ chartData, chartConfig }) => {
           
           // Find max value for proper scaling
           const maxValue = Math.max(...chartData.datasets[0].data);
-          const scaleFactor = maxValue > 0 ? 3 / maxValue : 1; // Scale to max height of 3 units
+          const scaleFactor = maxValue > 0 ? 5 / maxValue : 1; // Scale to max height of 5 units
           
           const bars = chartData.labels.map((label, index) => {
             const dataValue = chartData.datasets[0].data[index];
-            const height = Math.max(dataValue * scaleFactor, 0.1); // Minimum height of 0.1
+            const height = Math.max(dataValue * scaleFactor, 0.2); // Minimum height of 0.2
             
             return (
               <SimpleBar3D
@@ -281,15 +250,15 @@ const Chart3DSimple = ({ chartData, chartConfig }) => {
           const scatter3DData = scatterData.map((point, index) => {
             if (typeof point === 'object' && point.x !== undefined && point.y !== undefined) {
               return {
-                x: ((point.x - Math.min(...xValues)) / xRange - 0.5) * 6, // Scale to -3 to +3
-                y: ((point.y - Math.min(...yValues)) / yRange - 0.5) * 6,
-                z: ((point.z || 0 - Math.min(...zValues)) / zRange - 0.5) * 6
+                x: ((point.x - Math.min(...xValues)) / xRange - 0.5) * 8, // Scale to -4 to +4
+                y: ((point.y - Math.min(...yValues)) / yRange) * 6, // Scale to 0 to 6
+                z: ((point.z || 0 - Math.min(...zValues)) / zRange - 0.5) * 8
               };
             } else {
               return {
-                x: (index / scatterData.length - 0.5) * 6,
-                y: (typeof point === 'number' ? point : 0) * 0.01,
-                z: Math.random() * 2 - 1
+                x: (index / scatterData.length - 0.5) * 8,
+                y: (typeof point === 'number' ? point : 0) * 0.05,
+                z: Math.random() * 4 - 2
               };
             }
           });
@@ -332,16 +301,19 @@ const Chart3DSimple = ({ chartData, chartConfig }) => {
               const dataIndex = i * size + j;
               if (dataIndex < chartData.datasets[0].data.length) {
                 const value = chartData.datasets[0].data[dataIndex] || 0;
+                const label = chartData.labels[dataIndex] || `Point ${dataIndex + 1}`;
                 points.push(
                   <SimpleScatterPoint
                     key={`${i}-${j}`}
                     position={[
-                      (j - size / 2) * 0.5,
-                      value * 0.01,
-                      (i - size / 2) * 0.5
+                      (j - size / 2) * 0.8,
+                      value * 0.05,
+                      (i - size / 2) * 0.8
                     ]}
                     color={colors[dataIndex % colors.length]}
+                    label={String(label)}
                     onHover={setHoveredPoint}
+                    showAnimation={showAnimation}
                   />
                 );
               }
@@ -362,89 +334,108 @@ const Chart3DSimple = ({ chartData, chartConfig }) => {
   return (
     <div className="relative">
       {/* Control Panel */}
-      <div className="absolute top-4 left-4 bg-black bg-opacity-70 text-white p-3 rounded-lg z-10">
-        <h4 className="font-bold mb-2">3D Chart Controls</h4>
+      <div className="absolute top-4 left-4 bg-black bg-opacity-80 text-white p-3 rounded-lg z-20 border border-gray-600">
+        <h4 className="font-bold mb-2 text-emerald-400">3D Chart Controls</h4>
         <div className="space-y-2 text-sm">
-          <label className="flex items-center space-x-2">
+          <label className="flex items-center space-x-2 cursor-pointer">
             <input
               type="checkbox"
               checked={autoRotate}
               onChange={(e) => setAutoRotate(e.target.checked)}
               className="rounded"
             />
-            <span>Auto Rotate</span>
+            <span>Auto Rotate Camera</span>
           </label>
-          <label className="flex items-center space-x-2">
+          <label className="flex items-center space-x-2 cursor-pointer">
             <input
               type="checkbox"
               checked={showAnimation}
               onChange={(e) => setShowAnimation(e.target.checked)}
               className="rounded"
             />
-            <span>Animations</span>
+            <span>Element Animations</span>
           </label>
         </div>
-        <div className="text-xs text-gray-300 mt-2">
+        <div className="text-xs text-gray-300 mt-3 border-t border-gray-600 pt-2">
           <div>• Drag to rotate view</div>
-          <div>• Scroll to zoom</div>
-          <div>• Drag grid to reposition</div>
-          <div>• Hover points for details</div>
+          <div>• Scroll to zoom in/out</div>
+          <div>• Hover on points for info</div>
         </div>
       </div>
 
-      <div className="h-96 w-full bg-gray-900 rounded-lg">
+      {/* Chart Canvas */}
+      <div className="h-96 w-full bg-gray-900 rounded-lg border border-gray-700">
         <Canvas 
-          camera={{ position: [10, 10, 10], fov: 60 }}
-          dpr={[1, 2]} // Better resolution
+          camera={{ position: [12, 8, 12], fov: 60 }}
+          dpr={[1, 2]}
           antialias={true}
+          onCreated={({ gl }) => {
+            gl.antialias = true;
+            gl.shadowMap.enabled = true;
+            gl.shadowMap.type = THREE.PCFSoftShadowMap;
+          }}
         >
-          <ambientLight intensity={0.5} />
-          <directionalLight position={[10, 10, 5]} intensity={1} />
-          <pointLight position={[-10, -10, -10]} intensity={0.5} />
+          {/* Enhanced Lighting */}
+          <ambientLight intensity={0.6} />
+          <directionalLight 
+            position={[10, 10, 5]} 
+            intensity={1} 
+            castShadow
+            shadow-mapSize-width={2048}
+            shadow-mapSize-height={2048}
+          />
+          <pointLight position={[-10, -10, -10]} intensity={0.4} />
+          <pointLight position={[10, 5, 10]} intensity={0.3} color="#4ECDC4" />
           
-          {/* User-controlled camera */}
+          {/* Camera Controls - User has full control */}
           <OrbitControls 
             autoRotate={autoRotate}
-            autoRotateSpeed={2}
+            autoRotateSpeed={1}
             enablePan={true}
             enableZoom={true}
             enableRotate={true}
+            minDistance={5}
+            maxDistance={50}
+            enableDamping={true}
+            dampingFactor={0.05}
           />
           
-          {/* Axes with proper labels */}
-          <AxesHelper 
+          {/* Fixed Grid and Axes - Never separate */}
+          <GridAndAxes 
             xLabel={chartConfig.xAxis || 'X-Axis'}
             yLabel={chartConfig.yAxis || 'Y-Axis'}
             zLabel={chartConfig.chartType === 'scatter3d' ? 'Z-Value' : 'Height'}
           />
           
-          {/* Draggable Grid */}
-          <DraggableGrid />
-          
+          {/* Render the actual chart */}
           {render3DChart()}
         </Canvas>
       </div>
 
-      {/* Chart Info */}
-      <div className="absolute top-4 right-4 bg-black bg-opacity-70 text-white p-3 rounded-lg max-w-xs">
-        <h4 className="font-bold mb-2">{chartConfig.title || '3D Chart'}</h4>
-        <div className="text-xs text-gray-300">
-          <div><strong>Type:</strong> {chartConfig.chartType?.toUpperCase()}</div>
+      {/* Chart Information Panel */}
+      <div className="absolute top-4 right-4 bg-black bg-opacity-80 text-white p-3 rounded-lg max-w-xs border border-gray-600">
+        <h4 className="font-bold mb-2 text-cyan-400">{chartConfig.title || '3D Chart'}</h4>
+        <div className="text-xs text-gray-300 space-y-1">
+          <div><strong>Type:</strong> <span className="text-yellow-400">{chartConfig.chartType?.toUpperCase()}</span></div>
           <div><strong>X-Axis:</strong> {chartConfig.xAxis}</div>
           <div><strong>Y-Axis:</strong> {chartConfig.yAxis}</div>
           {chartData.labels && (
-            <div><strong>Data Points:</strong> {chartData.labels.length}</div>
+            <div><strong>Data Points:</strong> <span className="text-green-400">{chartData.labels.length}</span></div>
+          )}
+          {chartData.datasets && chartData.datasets[0] && (
+            <div><strong>Dataset:</strong> {chartData.datasets[0].label || 'Unnamed'}</div>
           )}
         </div>
       </div>
 
+      {/* Hover Information */}
       {hoveredPoint && (
-        <div className="absolute bottom-4 left-4 bg-blue-600 text-white p-3 rounded-lg">
-          <h4 className="font-bold">Hovered Point</h4>
-          <div className="text-sm mt-1">
+        <div className="absolute bottom-4 left-4 bg-blue-600 bg-opacity-90 text-white p-3 rounded-lg border border-blue-400">
+          <h4 className="font-bold text-blue-200">Point Details</h4>
+          <div className="text-sm mt-1 space-y-1">
             {hoveredPoint.label && <div><strong>Label:</strong> {hoveredPoint.label}</div>}
             {hoveredPoint.position && (
-              <div><strong>Position:</strong> ({hoveredPoint.position.join(', ')})</div>
+              <div><strong>Position:</strong> ({hoveredPoint.position.map(p => Number(p).toFixed(2)).join(', ')})</div>
             )}
           </div>
         </div>
