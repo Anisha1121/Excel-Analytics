@@ -205,8 +205,8 @@ const Chart3DSimple = ({ chartData, chartConfig }) => {
           }
           
           // Find max value for proper scaling
-          const maxValue = Math.max(...chartData.datasets[0].data);
-          const scaleFactor = maxValue > 0 ? 5 / maxValue : 1; // Scale to max height of 5 units
+          const barMaxValue = Math.max(...chartData.datasets[0].data);
+          const scaleFactor = barMaxValue > 0 ? 5 / barMaxValue : 1; // Scale to max height of 5 units
           
           const bars = chartData.labels.map((label, index) => {
             const dataValue = chartData.datasets[0].data[index];
@@ -365,11 +365,11 @@ const Chart3DSimple = ({ chartData, chartConfig }) => {
           const points = [];
           
           // Find min/max values for proper scaling
-          const minValue = Math.min(...surfaceData.filter(v => typeof v === 'number' && !isNaN(v)));
-          const maxValue = Math.max(...surfaceData.filter(v => typeof v === 'number' && !isNaN(v)));
-          const valueRange = maxValue - minValue || 1;
+          const surfaceMinValue = Math.min(...surfaceData.filter(v => typeof v === 'number' && !isNaN(v)));
+          const surfaceMaxValue = Math.max(...surfaceData.filter(v => typeof v === 'number' && !isNaN(v)));
+          const valueRange = surfaceMaxValue - surfaceMinValue || 1;
           
-          console.log('Surface3D: Value range', { minValue, maxValue, valueRange, dataLength: surfaceData.length });
+          console.log('Surface3D: Value range', { minValue: surfaceMinValue, maxValue: surfaceMaxValue, valueRange, dataLength: surfaceData.length });
           
           for (let i = 0; i < size; i++) {
             for (let j = 0; j < size; j++) {
@@ -380,7 +380,7 @@ const Chart3DSimple = ({ chartData, chartConfig }) => {
                 const label = surfaceLabels?.[dataIndex] || `Point ${dataIndex + 1}`;
                 
                 // Scale the height to be visible (1 to 6 units)
-                const scaledHeight = ((numericValue - minValue) / valueRange) * 5 + 1;
+                const scaledHeight = ((numericValue - surfaceMinValue) / valueRange) * 5 + 1;
                 
                 // Position points in a grid layout
                 const x = (j - size / 2) * 1.2; // Spread points wider
