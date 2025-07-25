@@ -57,6 +57,7 @@ const Analytics = () => {
     try {
       // Generate chart data from file data
       const chartData = generateChartData(fileData, chartConfig)
+      console.log('Generated chart data:', { chartType: chartConfig.chartType, chartData })
       
       // For 3D charts, skip backend call and display directly
       if (['bar3d', 'scatter3d', 'surface3d'].includes(chartConfig.chartType)) {
@@ -104,11 +105,30 @@ const Analytics = () => {
       // For scatter plots, show all data points with original row data
       const scatterData = data
         .filter(row => row[xAxis] && row[yAxis])
-        .map((row, index) => ({
-          x: parseFloat(row[xAxis]) || 0,
-          y: parseFloat(row[yAxis]) || 0,
-          z: chartType === 'scatter3d' ? (parseFloat(row[Object.keys(row)[2]]) || Math.random() * 10) : undefined
-        }))
+        .map((row, index) => {
+          const result = {
+            x: parseFloat(row[xAxis]) || 0,
+            y: parseFloat(row[yAxis]) || 0
+          };
+          
+          // For 3D scatter, try to find a third numeric column or use index
+          if (chartType === 'scatter3d') {
+            const allKeys = Object.keys(row);
+            const numericKeys = allKeys.filter(key => 
+              key !== xAxis && key !== yAxis && 
+              !isNaN(parseFloat(row[key])) && 
+              isFinite(row[key])
+            );
+            
+            if (numericKeys.length > 0) {
+              result.z = parseFloat(row[numericKeys[0]]) || 0;
+            } else {
+              result.z = index; // Use index as Z if no other numeric column
+            }
+          }
+          
+          return result;
+        })
         .slice(0, 100) // Limit to 100 points for performance
 
       // Create labels from the actual data - try to find a meaningful identifier

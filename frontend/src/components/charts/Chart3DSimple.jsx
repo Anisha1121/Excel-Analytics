@@ -1,6 +1,6 @@
 import React, { useMemo, useRef, useState } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
-import { OrbitControls, Text } from '@react-three/drei';
+import { OrbitControls, Text, Line } from '@react-three/drei';
 import * as THREE from 'three';
 
 // Simple 3D Bar component
@@ -102,6 +102,104 @@ const SimpleScatterPoint = ({ position, color, label, onHover, showAnimation }) 
   );
 };
 
+// Axes with labels
+const AxesHelper = ({ xLabel = 'X-Axis', yLabel = 'Y-Axis', zLabel = 'Z-Axis' }) => {
+  const axisLength = 8;
+  
+  return (
+    <group>
+      {/* X-Axis (Red) */}
+      <Line
+        points={[[-axisLength, 0, 0], [axisLength, 0, 0]]}
+        color="red"
+        lineWidth={3}
+      />
+      <Text
+        position={[axisLength + 1, 0, 0]}
+        fontSize={0.5}
+        color="red"
+        anchorX="center"
+        anchorY="middle"
+      >
+        {xLabel}
+      </Text>
+      
+      {/* Y-Axis (Green) */}
+      <Line
+        points={[[0, -axisLength, 0], [0, axisLength, 0]]}
+        color="green"
+        lineWidth={3}
+      />
+      <Text
+        position={[0, axisLength + 1, 0]}
+        fontSize={0.5}
+        color="green"
+        anchorX="center"
+        anchorY="middle"
+      >
+        {yLabel}
+      </Text>
+      
+      {/* Z-Axis (Blue) */}
+      <Line
+        points={[[0, 0, -axisLength], [0, 0, axisLength]]}
+        color="blue"
+        lineWidth={3}
+      />
+      <Text
+        position={[0, 0, axisLength + 1]}
+        fontSize={0.5}
+        color="blue"
+        anchorX="center"
+        anchorY="middle"
+      >
+        {zLabel}
+      </Text>
+    </group>
+  );
+};
+
+// Draggable Grid
+const DraggableGrid = ({ gridSize = 20, divisions = 20 }) => {
+  const gridRef = useRef();
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragStart, setDragStart] = useState([0, 0]);
+
+  const handlePointerDown = (e) => {
+    setIsDragging(true);
+    setDragStart([e.point.x, e.point.z]);
+    e.stopPropagation();
+  };
+
+  const handlePointerUp = () => {
+    setIsDragging(false);
+  };
+
+  const handlePointerMove = (e) => {
+    if (isDragging && gridRef.current) {
+      const deltaX = e.point.x - dragStart[0];
+      const deltaZ = e.point.z - dragStart[1];
+      gridRef.current.position.x += deltaX * 0.1;
+      gridRef.current.position.z += deltaZ * 0.1;
+    }
+  };
+
+  return (
+    <group 
+      ref={gridRef}
+      onPointerDown={handlePointerDown}
+      onPointerUp={handlePointerUp}
+      onPointerMove={handlePointerMove}
+    >
+      <gridHelper args={[gridSize, divisions]} />
+      <mesh position={[0, -0.01, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+        <planeGeometry args={[gridSize, gridSize]} />
+        <meshBasicMaterial color="#333333" transparent opacity={0.1} />
+      </mesh>
+    </group>
+  );
+};
+
 const Chart3DSimple = ({ chartData, chartConfig }) => {
   console.log('Chart3DSimple component called with:', { chartData, chartConfig });
   const [hoveredPoint, setHoveredPoint] = useState(null);
@@ -157,19 +255,28 @@ const Chart3DSimple = ({ chartData, chartConfig }) => {
 
         case 'scatter3d':
           if (!chartData.datasets || !chartData.datasets[0] || !chartData.datasets[0].data) {
+            console.log('Scatter3D: Missing data structure', { chartData });
             return null;
           }
           
           const scatterData = chartData.datasets[0].data;
+          console.log('Scatter3D: Processing data', { scatterData, chartConfig });
           
           // Find min/max values for proper scaling
           const xValues = scatterData.map(p => typeof p === 'object' ? p.x : 0).filter(v => !isNaN(v));
           const yValues = scatterData.map(p => typeof p === 'object' ? p.y : 0).filter(v => !isNaN(v));
           const zValues = scatterData.map(p => typeof p === 'object' ? (p.z || 0) : 0).filter(v => !isNaN(v));
           
+          if (xValues.length === 0 || yValues.length === 0) {
+            console.log('Scatter3D: No valid X or Y values found', { xValues, yValues });
+            return null;
+          }
+          
           const xRange = Math.max(...xValues) - Math.min(...xValues) || 1;
           const yRange = Math.max(...yValues) - Math.min(...yValues) || 1;
           const zRange = Math.max(...zValues) - Math.min(...zValues) || 1;
+          
+          console.log('Scatter3D: Value ranges', { xRange, yRange, zRange });
           
           const scatter3DData = scatterData.map((point, index) => {
             if (typeof point === 'object' && point.x !== undefined && point.y !== undefined) {
@@ -186,6 +293,8 @@ const Chart3DSimple = ({ chartData, chartConfig }) => {
               };
             }
           });
+          
+          console.log('Scatter3D: Final positioned data', scatter3DData.slice(0, 5));
           
           return (
             <group>
@@ -278,6 +387,7 @@ const Chart3DSimple = ({ chartData, chartConfig }) => {
         <div className="text-xs text-gray-300 mt-2">
           <div>• Drag to rotate view</div>
           <div>• Scroll to zoom</div>
+          <div>• Drag grid to reposition</div>
           <div>• Hover points for details</div>
         </div>
       </div>
@@ -301,10 +411,17 @@ const Chart3DSimple = ({ chartData, chartConfig }) => {
             enableRotate={true}
           />
           
-          {render3DChart()}
+          {/* Axes with proper labels */}
+          <AxesHelper 
+            xLabel={chartConfig.xAxis || 'X-Axis'}
+            yLabel={chartConfig.yAxis || 'Y-Axis'}
+            zLabel={chartConfig.chartType === 'scatter3d' ? 'Z-Value' : 'Height'}
+          />
           
-          {/* Simple grid */}
-          <gridHelper args={[20, 20]} />
+          {/* Draggable Grid */}
+          <DraggableGrid />
+          
+          {render3DChart()}
         </Canvas>
       </div>
 
