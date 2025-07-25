@@ -7,6 +7,7 @@ import Register from './pages/Register'
 import Dashboard from './pages/Dashboard'
 import Upload from './pages/Upload'
 import Analytics from './pages/Analytics'
+import SavedCharts from './pages/SavedCharts'
 import AdminPanel from './pages/AdminPanel'
 
 function App() {
@@ -35,6 +36,11 @@ function App() {
               <Route path="/analytics" element={
                 <ProtectedRoute>
                   <Analytics />
+                </ProtectedRoute>
+              } />
+              <Route path="/saved-charts" element={
+                <ProtectedRoute>
+                  <SavedCharts />
                 </ProtectedRoute>
               } />
               <Route path="/admin" element={

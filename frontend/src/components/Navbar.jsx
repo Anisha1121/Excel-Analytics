@@ -1,6 +1,6 @@
 import { Link, useLocation } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
-import { LogOut, BarChart3, Upload, Home, Settings, User, Key, ChevronDown, Sparkles } from 'lucide-react'
+import { LogOut, BarChart3, Upload, Home, Settings, User, Key, ChevronDown, Sparkles, Bookmark } from 'lucide-react'
 import { useState } from 'react'
 import ChangePassword from './ChangePassword'
 
@@ -66,6 +66,14 @@ const Navbar = () => {
                 >
                   <BarChart3 className="h-4 w-4" />
                   <span>Analytics</span>
+                </Link>
+
+                <Link
+                  to="/saved-charts"
+                  className={`nav-link ${isActive('/saved-charts') ? 'active' : ''}`}
+                >
+                  <Bookmark className="h-4 w-4" />
+                  <span>Saved Charts</span>
                 </Link>
 
                 {isAdmin && (

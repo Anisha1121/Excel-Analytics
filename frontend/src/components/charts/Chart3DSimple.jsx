@@ -91,6 +91,8 @@ const Chart3DSimple = ({ chartData, chartConfig }) => {
     );
   }
 
+  console.log('Chart3DSimple received data:', { chartData, chartConfig });
+
   const render3DChart = () => {
     try {
       console.log('Rendering 3D chart with type:', chartConfig.chartType);
@@ -100,16 +102,26 @@ const Chart3DSimple = ({ chartData, chartConfig }) => {
           if (!chartData.labels || !chartData.datasets || !chartData.datasets[0]) {
             return null;
           }
-          const bars = chartData.labels.map((label, index) => (
-            <SimpleBar3D
-              key={index}
-              position={[(index - chartData.labels.length / 2) * 1.5, 0, 0]}
-              height={Math.max(chartData.datasets[0].data[index] * 0.01, 0.1)}
-              color={colors[index % colors.length]}
-              label={label}
-              value={chartData.datasets[0].data[index]}
-            />
-          ));
+          
+          // Find max value for proper scaling
+          const maxValue = Math.max(...chartData.datasets[0].data);
+          const scaleFactor = maxValue > 0 ? 3 / maxValue : 1; // Scale to max height of 3 units
+          
+          const bars = chartData.labels.map((label, index) => {
+            const dataValue = chartData.datasets[0].data[index];
+            const height = Math.max(dataValue * scaleFactor, 0.1); // Minimum height of 0.1
+            
+            return (
+              <SimpleBar3D
+                key={index}
+                position={[(index - chartData.labels.length / 2) * 1.5, 0, 0]}
+                height={height}
+                color={colors[index % colors.length]}
+                label={label}
+                value={dataValue}
+              />
+            );
+          });
           return <group>{bars}</group>;
 
         case 'scatter3d':
@@ -118,18 +130,28 @@ const Chart3DSimple = ({ chartData, chartConfig }) => {
           }
           
           const scatterData = chartData.datasets[0].data;
+          
+          // Find min/max values for proper scaling
+          const xValues = scatterData.map(p => typeof p === 'object' ? p.x : 0).filter(v => !isNaN(v));
+          const yValues = scatterData.map(p => typeof p === 'object' ? p.y : 0).filter(v => !isNaN(v));
+          const zValues = scatterData.map(p => typeof p === 'object' ? (p.z || 0) : 0).filter(v => !isNaN(v));
+          
+          const xRange = Math.max(...xValues) - Math.min(...xValues) || 1;
+          const yRange = Math.max(...yValues) - Math.min(...yValues) || 1;
+          const zRange = Math.max(...zValues) - Math.min(...zValues) || 1;
+          
           const scatter3DData = scatterData.map((point, index) => {
             if (typeof point === 'object' && point.x !== undefined && point.y !== undefined) {
               return {
-                x: point.x * 0.1,
-                y: point.y * 0.1,
-                z: (point.z || Math.random() * 10) * 0.1
+                x: ((point.x - Math.min(...xValues)) / xRange - 0.5) * 6, // Scale to -3 to +3
+                y: ((point.y - Math.min(...yValues)) / yRange - 0.5) * 6,
+                z: ((point.z || 0 - Math.min(...zValues)) / zRange - 0.5) * 6
               };
             } else {
               return {
-                x: index * 0.5,
-                y: (typeof point === 'number' ? point : 0) * 0.1,
-                z: Math.random() * 2
+                x: (index / scatterData.length - 0.5) * 6,
+                y: (typeof point === 'number' ? point : 0) * 0.01,
+                z: Math.random() * 2 - 1
               };
             }
           });
