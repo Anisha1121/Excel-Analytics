@@ -3,9 +3,12 @@ import api from './api'
 export const authService = {
   async login(email, password) {
     try {
+      console.log('Attempting login with:', { email }); // Debug log (don't log password)
       const response = await api.post('/auth/login', { email, password })
+      console.log('Login successful:', response.data); // Debug log
       return response.data
     } catch (error) {
+      console.error('Login error:', error.response?.data || error.message); // Debug log
       throw new Error(error.response?.data?.message || 'Login failed')
     }
   },
