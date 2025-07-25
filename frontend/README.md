@@ -15,7 +15,7 @@ React.js frontend application for the Excel Analytics Platform.
 
 ## Tech Stack
 
-- **React 18** with TypeScript
+- **React 18** with JavaScript
 - **Vite** for build tooling
 - **Tailwind CSS** for styling
 - **Chart.js** for 2D charts
