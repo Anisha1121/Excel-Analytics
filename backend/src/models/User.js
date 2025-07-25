@@ -1,5 +1,6 @@
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
+const crypto = require('crypto');
 
 const userSchema = new mongoose.Schema({
   username: {
@@ -36,7 +37,9 @@ const userSchema = new mongoose.Schema({
     type: Date
   },
   resetPasswordToken: String,
-  resetPasswordExpire: Date
+  resetPasswordExpire: Date,
+  resetPasswordCode: String,
+  resetPasswordCodeExpire: Date
 }, {
   timestamps: true
 });
@@ -61,12 +64,52 @@ userSchema.methods.comparePassword = async function(candidatePassword) {
   return await bcrypt.compare(candidatePassword, this.password);
 };
 
+// Generate password reset code
+userSchema.methods.generatePasswordResetCode = function() {
+  // Generate 6-digit reset code
+  const resetCode = Math.floor(100000 + Math.random() * 900000).toString();
+  
+  // Hash the reset code before saving
+  this.resetPasswordCode = crypto.createHash('sha256').update(resetCode).digest('hex');
+  
+  // Set expire time to 15 minutes from now
+  this.resetPasswordCodeExpire = Date.now() + 15 * 60 * 1000; // 15 minutes
+  
+  return resetCode;
+};
+
+// Verify password reset code
+userSchema.methods.verifyPasswordResetCode = function(inputCode) {
+  if (!this.resetPasswordCode || !this.resetPasswordCodeExpire) {
+    return false;
+  }
+  
+  // Check if code has expired
+  if (Date.now() > this.resetPasswordCodeExpire) {
+    return false;
+  }
+  
+  // Hash the input code and compare
+  const hashedInputCode = crypto.createHash('sha256').update(inputCode).digest('hex');
+  return hashedInputCode === this.resetPasswordCode;
+};
+
+// Clear password reset fields
+userSchema.methods.clearPasswordReset = function() {
+  this.resetPasswordCode = undefined;
+  this.resetPasswordCodeExpire = undefined;
+  this.resetPasswordToken = undefined;
+  this.resetPasswordExpire = undefined;
+};
+
 // Remove password from JSON output
 userSchema.methods.toJSON = function() {
   const userObject = this.toObject();
   delete userObject.password;
   delete userObject.resetPasswordToken;
   delete userObject.resetPasswordExpire;
+  delete userObject.resetPasswordCode;
+  delete userObject.resetPasswordCodeExpire;
   return userObject;
 };
 

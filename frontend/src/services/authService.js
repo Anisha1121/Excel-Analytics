@@ -38,5 +38,28 @@ export const authService = {
     } catch (error) {
       throw new Error(error.response?.data?.message || 'Token refresh failed')
     }
+  },
+
+  async forgotPassword(email) {
+    try {
+      const response = await api.post('/auth/forgot-password', { email })
+      return response.data
+    } catch (error) {
+      throw new Error(error.response?.data?.message || 'Failed to send reset code')
+    }
+  },
+
+  async resetPassword(email, resetCode, newPassword, confirmPassword) {
+    try {
+      const response = await api.post('/auth/reset-password', {
+        email,
+        resetCode,
+        newPassword,
+        confirmPassword
+      })
+      return response.data
+    } catch (error) {
+      throw new Error(error.response?.data?.message || 'Password reset failed')
+    }
   }
 }

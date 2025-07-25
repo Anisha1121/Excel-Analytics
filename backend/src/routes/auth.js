@@ -5,7 +5,9 @@ const {
   login,
   getCurrentUser,
   refreshToken,
-  changePassword
+  changePassword,
+  forgotPassword,
+  resetPassword
 } = require('../controllers/authController');
 const { auth } = require('../middleware/auth');
 
@@ -56,11 +58,43 @@ const changePasswordValidation = [
     })
 ];
 
+// Forgot password validation rules
+const forgotPasswordValidation = [
+  body('email')
+    .isEmail()
+    .normalizeEmail()
+    .withMessage('Please provide a valid email')
+];
+
+// Reset password validation rules
+const resetPasswordValidation = [
+  body('email')
+    .isEmail()
+    .normalizeEmail()
+    .withMessage('Please provide a valid email'),
+  body('resetCode')
+    .isLength({ min: 6, max: 6 })
+    .isNumeric()
+    .withMessage('Reset code must be a 6-digit number'),
+  body('newPassword')
+    .isLength({ min: 6 })
+    .withMessage('New password must be at least 6 characters long'),
+  body('confirmPassword')
+    .custom((value, { req }) => {
+      if (value !== req.body.newPassword) {
+        throw new Error('Password confirmation does not match new password');
+      }
+      return true;
+    })
+];
+
 // Routes
 router.post('/register', registerValidation, register);
 router.post('/login', loginValidation, login);
 router.get('/me', auth, getCurrentUser);
 router.post('/refresh', auth, refreshToken);
 router.put('/change-password', auth, changePasswordValidation, changePassword);
+router.post('/forgot-password', forgotPasswordValidation, forgotPassword);
+router.post('/reset-password', resetPasswordValidation, resetPassword);
 
 module.exports = router;

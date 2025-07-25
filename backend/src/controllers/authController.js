@@ -1,6 +1,7 @@
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 const { validationResult } = require('express-validator');
+const emailService = require('../services/emailService');
 
 // Generate JWT Token
 const generateToken = (userId) => {
@@ -232,6 +233,14 @@ const changePassword = async (req, res) => {
     user.password = newPassword;
     await user.save();
 
+    // Send confirmation email
+    try {
+      await emailService.sendPasswordChangeConfirmation(user.email, user.username);
+    } catch (emailError) {
+      console.error('Failed to send password change confirmation email:', emailError);
+      // Don't fail the password change if email fails
+    }
+
     res.json({
       success: true,
       message: 'Password changed successfully'
@@ -245,10 +254,136 @@ const changePassword = async (req, res) => {
   }
 };
 
+// Forgot password - send reset code
+const forgotPassword = async (req, res) => {
+  try {
+    // Check for validation errors
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        success: false,
+        message: 'Validation failed',
+        errors: errors.array()
+      });
+    }
+
+    const { email } = req.body;
+
+    // Find user by email
+    const user = await User.findOne({ email: email.toLowerCase() });
+    if (!user) {
+      // For security, don't reveal if email exists or not
+      return res.json({
+        success: true,
+        message: 'If an account with that email exists, a reset code has been sent'
+      });
+    }
+
+    // Check if user account is active
+    if (!user.isActive) {
+      return res.status(400).json({
+        success: false,
+        message: 'Account is deactivated. Please contact support.'
+      });
+    }
+
+    // Generate reset code
+    const resetCode = user.generatePasswordResetCode();
+    await user.save();
+
+    // Send reset code via email
+    try {
+      await emailService.sendPasswordResetEmail(user.email, resetCode, user.username);
+      
+      res.json({
+        success: true,
+        message: 'Password reset code has been sent to your email'
+      });
+    } catch (emailError) {
+      console.error('Failed to send reset email:', emailError);
+      
+      // Clear the reset code if email fails
+      user.clearPasswordReset();
+      await user.save();
+      
+      res.status(500).json({
+        success: false,
+        message: 'Failed to send reset email. Please try again later.'
+      });
+    }
+  } catch (error) {
+    console.error('Forgot password error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error during password reset request'
+    });
+  }
+};
+
+// Reset password with code
+const resetPassword = async (req, res) => {
+  try {
+    // Check for validation errors
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        success: false,
+        message: 'Validation failed',
+        errors: errors.array()
+      });
+    }
+
+    const { email, resetCode, newPassword } = req.body;
+
+    // Find user by email
+    const user = await User.findOne({ email: email.toLowerCase() });
+    if (!user) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid reset code or email'
+      });
+    }
+
+    // Verify reset code
+    if (!user.verifyPasswordResetCode(resetCode)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid or expired reset code'
+      });
+    }
+
+    // Update password
+    user.password = newPassword;
+    user.clearPasswordReset();
+    await user.save();
+
+    // Send confirmation email
+    try {
+      await emailService.sendPasswordChangeConfirmation(user.email, user.username);
+    } catch (emailError) {
+      console.error('Failed to send password change confirmation email:', emailError);
+      // Don't fail the password reset if confirmation email fails
+    }
+
+    res.json({
+      success: true,
+      message: 'Password has been reset successfully'
+    });
+  } catch (error) {
+    console.error('Reset password error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error during password reset'
+    });
+  }
+};
+
 module.exports = {
   register,
   login,
   getCurrentUser,
   refreshToken,
-  changePassword
+  changePassword,
+  forgotPassword,
+  resetPassword
 };
