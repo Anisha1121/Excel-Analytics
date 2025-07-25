@@ -51,10 +51,11 @@ const SimpleScatterPoint = ({ position, color, label, onHover, showAnimation }) 
 
   useFrame(() => {
     if (meshRef.current) {
-      meshRef.current.scale.setScalar(hovered ? 1.5 : 1);
+      meshRef.current.scale.setScalar(hovered ? 1.8 : 1.2); // Make bigger and more visible
       // Only auto-animate if showAnimation is true
       if (showAnimation) {
         meshRef.current.rotation.x += 0.01;
+        meshRef.current.rotation.y += 0.01;
       }
     }
   });
@@ -79,21 +80,24 @@ const SimpleScatterPoint = ({ position, color, label, onHover, showAnimation }) 
         onPointerOver={handlePointerOver}
         onPointerOut={handlePointerOut}
       >
-        <sphereGeometry args={[0.15, 16, 16]} />
+        <sphereGeometry args={[0.2, 16, 16]} />
         <meshStandardMaterial 
           color={hovered ? '#FFD700' : color}
           emissive={hovered ? '#FFD700' : color}
-          emissiveIntensity={hovered ? 0.3 : 0.1}
+          emissiveIntensity={hovered ? 0.4 : 0.2}
+          metalness={0.3}
+          roughness={0.4}
         />
       </mesh>
       {/* Add label for scatter point */}
       {label && (
         <Text
-          position={[0, 0.4, 0]}
-          fontSize={0.15}
+          position={[0, 0.5, 0]}
+          fontSize={0.2}
           color="white"
           anchorX="center"
           anchorY="middle"
+          font="Arial"
         >
           {label}
         </Text>
@@ -231,54 +235,98 @@ const Chart3DSimple = ({ chartData, chartConfig }) => {
           const scatterData = chartData.datasets[0].data;
           console.log('Scatter3D: Processing data', { scatterData, chartConfig });
           
-          // Find min/max values for proper scaling
-          const xValues = scatterData.map(p => typeof p === 'object' ? p.x : 0).filter(v => !isNaN(v));
-          const yValues = scatterData.map(p => typeof p === 'object' ? p.y : 0).filter(v => !isNaN(v));
-          const zValues = scatterData.map(p => typeof p === 'object' ? (p.z || 0) : 0).filter(v => !isNaN(v));
+          // Handle different data formats
+          let processedData = [];
           
-          if (xValues.length === 0 || yValues.length === 0) {
-            console.log('Scatter3D: No valid X or Y values found', { xValues, yValues });
-            return null;
+          if (Array.isArray(scatterData) && scatterData.length > 0) {
+            processedData = scatterData.map((point, index) => {
+              // Handle object format {x: value, y: value} or {x: value, y: value, z: value}
+              if (typeof point === 'object' && point !== null && 
+                  typeof point.x === 'number' && typeof point.y === 'number') {
+                return {
+                  x: point.x,
+                  y: point.y,
+                  z: point.z || Math.random() * 2 - 1, // Random Z if not provided
+                  label: chartData.labels?.[index] || `Point ${index + 1}`
+                };
+              }
+              // Handle simple number format
+              else if (typeof point === 'number') {
+                return {
+                  x: index,
+                  y: point,
+                  z: Math.random() * 2 - 1,
+                  label: chartData.labels?.[index] || `Point ${index + 1}`
+                };
+              }
+              // Handle array format [x, y] or [x, y, z]
+              else if (Array.isArray(point) && point.length >= 2) {
+                return {
+                  x: point[0],
+                  y: point[1],
+                  z: point[2] || Math.random() * 2 - 1,
+                  label: chartData.labels?.[index] || `Point ${index + 1}`
+                };
+              }
+              // Default fallback
+              else {
+                return {
+                  x: index,
+                  y: 0,
+                  z: Math.random() * 2 - 1,
+                  label: chartData.labels?.[index] || `Point ${index + 1}`
+                };
+              }
+            });
           }
           
-          const xRange = Math.max(...xValues) - Math.min(...xValues) || 1;
-          const yRange = Math.max(...yValues) - Math.min(...yValues) || 1;
-          const zRange = Math.max(...zValues) - Math.min(...zValues) || 1;
+          if (processedData.length === 0) {
+            console.log('Scatter3D: No valid data points found');
+            return (
+              <group>
+                <Text position={[0, 3, 0]} fontSize={0.5} color="red" anchorX="center">
+                  No scatter data available
+                </Text>
+              </group>
+            );
+          }
           
-          console.log('Scatter3D: Value ranges', { xRange, yRange, zRange });
+          // Find ranges for scaling
+          const xValues = processedData.map(p => p.x);
+          const yValues = processedData.map(p => p.y);
+          const zValues = processedData.map(p => p.z);
           
-          const scatter3DData = scatterData.map((point, index) => {
-            if (typeof point === 'object' && point.x !== undefined && point.y !== undefined) {
-              return {
-                x: ((point.x - Math.min(...xValues)) / xRange - 0.5) * 8, // Scale to -4 to +4
-                y: ((point.y - Math.min(...yValues)) / yRange) * 6, // Scale to 0 to 6
-                z: ((point.z || 0 - Math.min(...zValues)) / zRange - 0.5) * 8
-              };
-            } else {
-              return {
-                x: (index / scatterData.length - 0.5) * 8,
-                y: (typeof point === 'number' ? point : 0) * 0.05,
-                z: Math.random() * 4 - 2
-              };
-            }
+          const xMin = Math.min(...xValues);
+          const xMax = Math.max(...xValues);
+          const yMin = Math.min(...yValues);
+          const yMax = Math.max(...yValues);
+          const zMin = Math.min(...zValues);
+          const zMax = Math.max(...zValues);
+          
+          const xRange = xMax - xMin || 1;
+          const yRange = yMax - yMin || 1;
+          const zRange = zMax - zMin || 1;
+          
+          console.log('Scatter3D: Data ranges', { 
+            xRange: [xMin, xMax], 
+            yRange: [yMin, yMax], 
+            zRange: [zMin, zMax] 
           });
-          
-          console.log('Scatter3D: Final positioned data', scatter3DData.slice(0, 5));
           
           return (
             <group>
-              {scatter3DData.map((point, index) => {
-                // Get the corresponding label from chartData.labels
-                const label = chartData.labels && chartData.labels[index] 
-                  ? String(chartData.labels[index]) 
-                  : `Point ${index + 1}`;
+              {processedData.map((point, index) => {
+                // Scale to visible range (-4 to +4 for X and Z, 0 to 8 for Y)
+                const scaledX = ((point.x - xMin) / xRange - 0.5) * 8;
+                const scaledY = ((point.y - yMin) / yRange) * 6 + 1; // Add 1 to lift above grid
+                const scaledZ = ((point.z - zMin) / zRange - 0.5) * 8;
                 
                 return (
                   <SimpleScatterPoint
                     key={index}
-                    position={[point.x, point.y, point.z]}
+                    position={[scaledX, scaledY, scaledZ]}
                     color={colors[index % colors.length]}
-                    label={label}
+                    label={point.label}
                     onHover={setHoveredPoint}
                     showAnimation={showAnimation}
                   />
@@ -289,27 +337,59 @@ const Chart3DSimple = ({ chartData, chartConfig }) => {
 
         case 'surface3d':
           if (!chartData.labels || !chartData.datasets || !chartData.datasets[0]) {
-            return null;
+            console.log('Surface3D: Missing required data', { chartData });
+            return (
+              <group>
+                <Text position={[0, 3, 0]} fontSize={0.5} color="red" anchorX="center">
+                  No surface data available
+                </Text>
+              </group>
+            );
           }
           
-          // Create a simple surface using points
-          const size = Math.ceil(Math.sqrt(chartData.labels.length));
+          const surfaceData = chartData.datasets[0].data;
+          const surfaceLabels = chartData.labels;
+          
+          if (!surfaceData || surfaceData.length === 0) {
+            return (
+              <group>
+                <Text position={[0, 3, 0]} fontSize={0.5} color="orange" anchorX="center">
+                  No surface data points
+                </Text>
+              </group>
+            );
+          }
+          
+          // Create a grid layout for surface visualization
+          const size = Math.ceil(Math.sqrt(surfaceData.length));
           const points = [];
+          
+          // Find min/max values for proper scaling
+          const minValue = Math.min(...surfaceData.filter(v => typeof v === 'number' && !isNaN(v)));
+          const maxValue = Math.max(...surfaceData.filter(v => typeof v === 'number' && !isNaN(v)));
+          const valueRange = maxValue - minValue || 1;
+          
+          console.log('Surface3D: Value range', { minValue, maxValue, valueRange, dataLength: surfaceData.length });
           
           for (let i = 0; i < size; i++) {
             for (let j = 0; j < size; j++) {
               const dataIndex = i * size + j;
-              if (dataIndex < chartData.datasets[0].data.length) {
-                const value = chartData.datasets[0].data[dataIndex] || 0;
-                const label = chartData.labels[dataIndex] || `Point ${dataIndex + 1}`;
+              if (dataIndex < surfaceData.length) {
+                const value = surfaceData[dataIndex];
+                const numericValue = typeof value === 'number' ? value : 0;
+                const label = surfaceLabels?.[dataIndex] || `Point ${dataIndex + 1}`;
+                
+                // Scale the height to be visible (1 to 6 units)
+                const scaledHeight = ((numericValue - minValue) / valueRange) * 5 + 1;
+                
+                // Position points in a grid layout
+                const x = (j - size / 2) * 1.2; // Spread points wider
+                const z = (i - size / 2) * 1.2;
+                
                 points.push(
                   <SimpleScatterPoint
-                    key={`${i}-${j}`}
-                    position={[
-                      (j - size / 2) * 0.8,
-                      value * 0.05,
-                      (i - size / 2) * 0.8
-                    ]}
+                    key={`surface-${i}-${j}`}
+                    position={[x, scaledHeight, z]}
                     color={colors[dataIndex % colors.length]}
                     label={String(label)}
                     onHover={setHoveredPoint}
@@ -318,6 +398,18 @@ const Chart3DSimple = ({ chartData, chartConfig }) => {
                 );
               }
             }
+          }
+          
+          console.log('Surface3D: Generated points', points.length);
+          
+          if (points.length === 0) {
+            return (
+              <group>
+                <Text position={[0, 3, 0]} fontSize={0.5} color="yellow" anchorX="center">
+                  Failed to generate surface points
+                </Text>
+              </group>
+            );
           }
           
           return <group>{points}</group>;
