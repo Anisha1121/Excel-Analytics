@@ -1,13 +1,15 @@
 import React, { useMemo, useRef, useState } from 'react';
-import { Canvas, useFrame } from '@react-three/fiber';
+import { Canvas, useFrame, useThree } from '@react-three/fiber';
+import { OrbitControls, Text } from '@react-three/drei';
 import * as THREE from 'three';
 
 // Simple 3D Bar component
-const SimpleBar3D = ({ position, height, color, label, value }) => {
+const SimpleBar3D = ({ position, height, color, label, value, showAnimation }) => {
   const meshRef = useRef();
   
+  // Only animate if showAnimation is true
   useFrame((state) => {
-    if (meshRef.current) {
+    if (meshRef.current && showAnimation) {
       meshRef.current.rotation.y = Math.sin(state.clock.elapsedTime + position[0]) * 0.05;
     }
   });
@@ -18,25 +20,49 @@ const SimpleBar3D = ({ position, height, color, label, value }) => {
         <boxGeometry args={[0.8, height, 0.8]} />
         <meshStandardMaterial color={color} />
       </mesh>
+      {/* Add label text above the bar */}
+      <Text
+        position={[0, height + 0.5, 0]}
+        fontSize={0.3}
+        color="white"
+        anchorX="center"
+        anchorY="middle"
+      >
+        {label}
+      </Text>
+      {/* Add value text below the bar */}
+      <Text
+        position={[0, -0.3, 0]}
+        fontSize={0.2}
+        color="lightgray"
+        anchorX="center"
+        anchorY="middle"
+      >
+        {value}
+      </Text>
     </group>
   );
 };
 
 // Simple 3D Scatter Point
-const SimpleScatterPoint = ({ position, color, onHover }) => {
+const SimpleScatterPoint = ({ position, color, label, onHover, showAnimation }) => {
   const meshRef = useRef();
   const [hovered, setHovered] = useState(false);
 
   useFrame(() => {
     if (meshRef.current) {
       meshRef.current.scale.setScalar(hovered ? 1.5 : 1);
+      // Only auto-animate if showAnimation is true
+      if (showAnimation) {
+        meshRef.current.rotation.x += 0.01;
+      }
     }
   });
 
   const handlePointerOver = (e) => {
     e.stopPropagation();
     setHovered(true);
-    onHover && onHover(position);
+    onHover && onHover({ position, label });
     document.body.style.cursor = 'pointer';
   };
 
@@ -47,36 +73,40 @@ const SimpleScatterPoint = ({ position, color, onHover }) => {
   };
 
   return (
-    <mesh
-      ref={meshRef}
-      position={position}
-      onPointerOver={handlePointerOver}
-      onPointerOut={handlePointerOut}
-    >
-      <sphereGeometry args={[0.15, 16, 16]} />
-      <meshStandardMaterial 
-        color={hovered ? '#FFD700' : color}
-        emissive={hovered ? '#FFD700' : color}
-        emissiveIntensity={hovered ? 0.3 : 0.1}
-      />
-    </mesh>
+    <group position={position}>
+      <mesh
+        ref={meshRef}
+        onPointerOver={handlePointerOver}
+        onPointerOut={handlePointerOut}
+      >
+        <sphereGeometry args={[0.15, 16, 16]} />
+        <meshStandardMaterial 
+          color={hovered ? '#FFD700' : color}
+          emissive={hovered ? '#FFD700' : color}
+          emissiveIntensity={hovered ? 0.3 : 0.1}
+        />
+      </mesh>
+      {/* Add label for scatter point */}
+      {label && (
+        <Text
+          position={[0, 0.4, 0]}
+          fontSize={0.15}
+          color="white"
+          anchorX="center"
+          anchorY="middle"
+        >
+          {label}
+        </Text>
+      )}
+    </group>
   );
-};
-
-// Simple Camera Controls (basic orbit)
-const CameraControls = () => {
-  useFrame((state) => {
-    const t = state.clock.getElapsedTime();
-    state.camera.position.x = Math.cos(t * 0.1) * 10;
-    state.camera.position.z = Math.sin(t * 0.1) * 10;
-    state.camera.lookAt(0, 0, 0);
-  });
-  return null;
 };
 
 const Chart3DSimple = ({ chartData, chartConfig }) => {
   console.log('Chart3DSimple component called with:', { chartData, chartConfig });
   const [hoveredPoint, setHoveredPoint] = useState(null);
+  const [showAnimation, setShowAnimation] = useState(false);
+  const [autoRotate, setAutoRotate] = useState(false);
 
   const colors = [
     '#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7',
@@ -117,8 +147,9 @@ const Chart3DSimple = ({ chartData, chartConfig }) => {
                 position={[(index - chartData.labels.length / 2) * 1.5, 0, 0]}
                 height={height}
                 color={colors[index % colors.length]}
-                label={label}
-                value={dataValue}
+                label={String(label)} // Ensure it's a string
+                value={String(dataValue)} // Show actual value
+                showAnimation={showAnimation}
               />
             );
           });
@@ -158,14 +189,23 @@ const Chart3DSimple = ({ chartData, chartConfig }) => {
           
           return (
             <group>
-              {scatter3DData.map((point, index) => (
-                <SimpleScatterPoint
-                  key={index}
-                  position={[point.x, point.y, point.z]}
-                  color={colors[index % colors.length]}
-                  onHover={setHoveredPoint}
-                />
-              ))}
+              {scatter3DData.map((point, index) => {
+                // Get the corresponding label from chartData.labels
+                const label = chartData.labels && chartData.labels[index] 
+                  ? String(chartData.labels[index]) 
+                  : `Point ${index + 1}`;
+                
+                return (
+                  <SimpleScatterPoint
+                    key={index}
+                    position={[point.x, point.y, point.z]}
+                    color={colors[index % colors.length]}
+                    label={label}
+                    onHover={setHoveredPoint}
+                    showAnimation={showAnimation}
+                  />
+                );
+              })}
             </group>
           );
 
@@ -212,15 +252,54 @@ const Chart3DSimple = ({ chartData, chartConfig }) => {
 
   return (
     <div className="relative">
+      {/* Control Panel */}
+      <div className="absolute top-4 left-4 bg-black bg-opacity-70 text-white p-3 rounded-lg z-10">
+        <h4 className="font-bold mb-2">3D Chart Controls</h4>
+        <div className="space-y-2 text-sm">
+          <label className="flex items-center space-x-2">
+            <input
+              type="checkbox"
+              checked={autoRotate}
+              onChange={(e) => setAutoRotate(e.target.checked)}
+              className="rounded"
+            />
+            <span>Auto Rotate</span>
+          </label>
+          <label className="flex items-center space-x-2">
+            <input
+              type="checkbox"
+              checked={showAnimation}
+              onChange={(e) => setShowAnimation(e.target.checked)}
+              className="rounded"
+            />
+            <span>Animations</span>
+          </label>
+        </div>
+        <div className="text-xs text-gray-300 mt-2">
+          <div>• Drag to rotate view</div>
+          <div>• Scroll to zoom</div>
+          <div>• Hover points for details</div>
+        </div>
+      </div>
+
       <div className="h-96 w-full bg-gray-900 rounded-lg">
         <Canvas 
           camera={{ position: [10, 10, 10], fov: 60 }}
+          dpr={[1, 2]} // Better resolution
+          antialias={true}
         >
-          <ambientLight intensity={0.4} />
+          <ambientLight intensity={0.5} />
           <directionalLight position={[10, 10, 5]} intensity={1} />
           <pointLight position={[-10, -10, -10]} intensity={0.5} />
           
-          <CameraControls />
+          {/* User-controlled camera */}
+          <OrbitControls 
+            autoRotate={autoRotate}
+            autoRotateSpeed={2}
+            enablePan={true}
+            enableZoom={true}
+            enableRotate={true}
+          />
           
           {render3DChart()}
           
@@ -229,12 +308,16 @@ const Chart3DSimple = ({ chartData, chartConfig }) => {
         </Canvas>
       </div>
 
-      {/* Legend */}
+      {/* Chart Info */}
       <div className="absolute top-4 right-4 bg-black bg-opacity-70 text-white p-3 rounded-lg max-w-xs">
-        <h4 className="font-bold mb-2">3D Chart</h4>
+        <h4 className="font-bold mb-2">{chartConfig.title || '3D Chart'}</h4>
         <div className="text-xs text-gray-300">
-          <div>• Hover over points for interaction</div>
-          <div>• Automatic rotation enabled</div>
+          <div><strong>Type:</strong> {chartConfig.chartType?.toUpperCase()}</div>
+          <div><strong>X-Axis:</strong> {chartConfig.xAxis}</div>
+          <div><strong>Y-Axis:</strong> {chartConfig.yAxis}</div>
+          {chartData.labels && (
+            <div><strong>Data Points:</strong> {chartData.labels.length}</div>
+          )}
         </div>
       </div>
 
@@ -242,7 +325,10 @@ const Chart3DSimple = ({ chartData, chartConfig }) => {
         <div className="absolute bottom-4 left-4 bg-blue-600 text-white p-3 rounded-lg">
           <h4 className="font-bold">Hovered Point</h4>
           <div className="text-sm mt-1">
-            <div><strong>Position:</strong> ({hoveredPoint.join(', ')})</div>
+            {hoveredPoint.label && <div><strong>Label:</strong> {hoveredPoint.label}</div>}
+            {hoveredPoint.position && (
+              <div><strong>Position:</strong> ({hoveredPoint.position.join(', ')})</div>
+            )}
           </div>
         </div>
       )}
