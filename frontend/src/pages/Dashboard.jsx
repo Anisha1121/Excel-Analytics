@@ -4,7 +4,7 @@ import { fileService } from '../services/fileService'
 import { 
   BarChart3, Upload, FileSpreadsheet, TrendingUp, Activity, Star, Zap, 
   Users, Eye, Calendar, Clock, Globe, Download, PieChart, LineChart,
-  Target, Award, Rocket, Sparkles, Crown, Fire
+  Target, Award, Rocket, Sparkles, Crown, Flame
 } from 'lucide-react'
 
 const Dashboard = () => {
@@ -202,7 +202,7 @@ const Dashboard = () => {
                       {stats.chartsToday}
                     </p>
                     <div className="flex items-center text-purple-600 text-xs font-medium">
-                      <Fire className="h-3 w-3 mr-1" />
+                      <Flame className="h-3 w-3 mr-1" />
                       Hot!
                     </div>
                   </div>
