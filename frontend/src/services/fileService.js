@@ -66,6 +66,25 @@ export const fileService = {
     }
   },
 
+  async save3DChart(chartConfig, chartData, metadata = {}) {
+    try {
+      const payload = {
+        chartType: '3d',
+        config: chartConfig,
+        data: chartData,
+        metadata: {
+          ...metadata,
+          created: new Date().toISOString(),
+          chartFormat: '3D'
+        }
+      }
+      const response = await api.post('/charts/save-3d', payload)
+      return response.data
+    } catch (error) {
+      throw new Error(error.response?.data?.message || 'Failed to save 3D chart')
+    }
+  },
+
   async getSavedCharts() {
     try {
       const response = await api.get('/users/analytics')

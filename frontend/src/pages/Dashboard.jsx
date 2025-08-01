@@ -1,6 +1,7 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
 import { useAuth } from '../contexts/AuthContext'
 import { fileService } from '../services/fileService'
+import LoadingSpinner from '../components/LoadingSpinner'
 import { 
   BarChart3, Upload, FileSpreadsheet, TrendingUp, Activity, Star, Zap, 
   Users, Eye, Calendar, Clock, Globe, Download, PieChart, LineChart,
@@ -39,8 +40,8 @@ const Dashboard = () => {
           return uploadDate > weekAgo
         }).length || 0
 
-        // Generate engaging dashboard statistics
-        const generateStats = () => {
+        // Generate engaging dashboard statistics with memoization
+        const generateStats = useCallback(() => {
           const now = new Date()
           const seed = now.getDate() + now.getMonth() * 31 // Daily variation
 
@@ -82,7 +83,7 @@ const Dashboard = () => {
             successRate,
             dataProcessed: parseFloat(dataProcessed)
           }
-        }
+        }, [totalFiles, recentUploads]) // Dependencies for useCallback
 
         setStats(generateStats())
       } catch (error) {
@@ -108,8 +109,7 @@ const Dashboard = () => {
   if (loading) {
     return (
       <div className="flex flex-col justify-center items-center min-h-96">
-        <div className="spinner mb-4"></div>
-        <p className="text-gray-600 animate-pulse">Loading your dashboard...</p>
+        <LoadingSpinner size="large" text="Loading your dashboard..." />
       </div>
     )
   }

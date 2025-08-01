@@ -97,6 +97,34 @@ const Analytics = () => {
     }
   }
 
+  const save3DChart = async () => {
+    if (!generatedChart || !['bar3d', 'scatter3d', 'surface3d'].includes(generatedChart.config.chartType)) {
+      setError('No 3D chart to save')
+      return
+    }
+
+    try {
+      setChartLoading(true)
+      await fileService.save3DChart(
+        generatedChart.config,
+        generatedChart.data,
+        {
+          title: `${generatedChart.config.chartType} - ${generatedChart.config.xAxis} vs ${generatedChart.config.yAxis}`,
+          fileSource: selectedFile,
+          aiAnalysis: generatedChart.aiAnalysis
+        }
+      )
+      setError('')
+      // You could show a success message here
+      console.log('3D Chart saved successfully')
+    } catch (error) {
+      console.error('Save 3D chart error:', error)
+      setError('Failed to save 3D chart')
+    } finally {
+      setChartLoading(false)
+    }
+  }
+
   const generateChartData = (fileData, config) => {
     if (!fileData || !fileData.preview) return null
 
@@ -886,13 +914,28 @@ const Analytics = () => {
             </div>
             <div className="bg-gray-900/90 backdrop-blur-sm rounded-2xl shadow-2xl border border-gray-700/50 overflow-hidden">
               <div className="bg-gradient-to-r from-gray-800 via-gray-900 to-black p-6 border-b border-gray-700/50">
-                <h3 className="text-lg font-semibold text-white flex items-center">
-                  <BarChart3 className="h-5 w-5 mr-2 text-blue-400" />
-                  {chartConfig.chartType?.includes('3d') ? '3D Interactive Chart' : '2D Chart Visualization'}
-                </h3>
-                <p className="text-gray-300 text-sm mt-1">
-                  {chartConfig.xAxis} vs {chartConfig.yAxis} • {chartConfig.chartType.toUpperCase()}
-                </p>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="text-lg font-semibold text-white flex items-center">
+                      <BarChart3 className="h-5 w-5 mr-2 text-blue-400" />
+                      {chartConfig.chartType?.includes('3d') ? '3D Interactive Chart' : '2D Chart Visualization'}
+                    </h3>
+                    <p className="text-gray-300 text-sm mt-1">
+                      {chartConfig.xAxis} vs {chartConfig.yAxis} • {chartConfig.chartType.toUpperCase()}
+                    </p>
+                  </div>
+                  {/* Save Chart Button for 3D Charts */}
+                  {chartConfig.chartType?.includes('3d') && (
+                    <button
+                      onClick={save3DChart}
+                      disabled={chartLoading}
+                      className="flex items-center space-x-2 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-4 py-2 rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl"
+                    >
+                      <Download className="h-4 w-4" />
+                      <span>{chartLoading ? 'Saving...' : 'Save 3D Chart'}</span>
+                    </button>
+                  )}
+                </div>
               </div>
               <div className="p-6 bg-gray-800/30 backdrop-blur-sm">
                 <ChartDisplay 
