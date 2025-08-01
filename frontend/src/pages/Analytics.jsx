@@ -306,262 +306,374 @@ const Analytics = () => {
   }
 
   return (
-    <div className="max-w-7xl mx-auto">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900">Analytics & Visualization</h1>
-        <p className="text-gray-600 mt-2">
-          Create interactive charts from your uploaded Excel data.
-        </p>
-      </div>
-
-      {error && (
-        <div className="mb-6 bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-md">
-          {error}
-        </div>
-      )}
-
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* File Selection */}
-        <div className="lg:col-span-1">
-          <div className="bg-white rounded-lg shadow">
-            <div className="p-6 border-b border-gray-200">
-              <h3 className="text-lg font-medium text-gray-900">Select File</h3>
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Enhanced Header Section */}
+        <div className="text-center mb-12">
+          <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-r from-blue-600 to-purple-600 rounded-2xl mb-6 shadow-lg">
+            <BarChart3 className="h-8 w-8 text-white" />
+          </div>
+          <h1 className="text-4xl lg:text-5xl font-bold bg-gradient-to-r from-gray-900 via-blue-900 to-purple-900 bg-clip-text text-transparent mb-4">
+            Analytics & Visualization
+          </h1>
+          <p className="text-xl text-gray-600 max-w-2xl mx-auto leading-relaxed">
+            Transform your Excel data into stunning interactive charts and gain powerful insights with our advanced visualization tools.
+          </p>
+          <div className="flex items-center justify-center space-x-6 mt-6">
+            <div className="flex items-center space-x-2 text-sm text-gray-500">
+              <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+              <span>Real-time Processing</span>
             </div>
-            <div className="p-6">
-              {files.length > 0 ? (
-                <div className="space-y-3">
-                  {files.map((file) => (
-                    <button
-                      key={file._id}
-                      onClick={() => handleFileSelect(file._id)}
-                      className={`w-full text-left p-3 rounded-lg border transition-colors ${
-                        selectedFile === file._id
-                          ? 'border-primary-500 bg-primary-50'
-                          : 'border-gray-200 hover:bg-gray-50'
-                      }`}
+            <div className="flex items-center space-x-2 text-sm text-gray-500">
+              <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+              <span>Interactive 3D Charts</span>
+            </div>
+            <div className="flex items-center space-x-2 text-sm text-gray-500">
+              <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
+              <span>Export Ready</span>
+            </div>
+          </div>
+        </div>
+
+        {error && (
+          <div className="mb-8 bg-gradient-to-r from-red-50 to-pink-50 border-l-4 border-red-400 rounded-r-lg shadow-md">
+            <div className="flex items-center p-4">
+              <div className="flex-shrink-0">
+                <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                </svg>
+              </div>
+              <div className="ml-3">
+                <p className="text-sm font-medium text-red-800">{error}</p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        <div className="grid grid-cols-1 xl:grid-cols-4 gap-8">
+          {/* Enhanced File Selection */}
+          <div className="xl:col-span-1">
+            <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-gray-200/50 overflow-hidden sticky top-8">
+              <div className="bg-gradient-to-r from-blue-600 to-purple-600 p-6">
+                <h3 className="text-lg font-semibold text-white flex items-center">
+                  <FileSpreadsheet className="h-5 w-5 mr-2" />
+                  Select Data File
+                </h3>
+                <p className="text-blue-100 text-sm mt-1">Choose your Excel file to visualize</p>
+              </div>
+              <div className="p-6">
+                {files.length > 0 ? (
+                  <div className="space-y-3">
+                    {files.map((file) => (
+                      <button
+                        key={file._id}
+                        onClick={() => handleFileSelect(file._id)}
+                        className={`w-full text-left p-4 rounded-xl border-2 transition-all duration-200 transform hover:scale-[1.02] ${
+                          selectedFile === file._id
+                            ? 'border-blue-500 bg-gradient-to-r from-blue-50 to-purple-50 shadow-md'
+                            : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+                        }`}
+                      >
+                        <div className="flex items-start">
+                          <div className={`p-2 rounded-lg mr-3 ${
+                            selectedFile === file._id ? 'bg-blue-100' : 'bg-green-100'
+                          }`}>
+                            <FileSpreadsheet className={`h-5 w-5 ${
+                              selectedFile === file._id ? 'text-blue-600' : 'text-green-600'
+                            }`} />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium text-gray-900 truncate">
+                              {file.originalName}
+                            </p>
+                            <p className="text-xs text-gray-500 mt-1">
+                              Uploaded: {new Date(file.uploadDate).toLocaleDateString()}
+                            </p>
+                            {selectedFile === file._id && (
+                              <div className="mt-2">
+                                <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                  Active
+                                </span>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-8">
+                    <div className="w-16 h-16 bg-gradient-to-r from-gray-100 to-gray-200 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                      <FileSpreadsheet className="h-8 w-8 text-gray-400" />
+                    </div>
+                    <p className="text-gray-500 mb-3">No files available</p>
+                    <a
+                      href="/upload"
+                      className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white text-sm font-medium rounded-lg hover:from-blue-700 hover:to-purple-700 transition-all duration-200"
                     >
-                      <div className="flex items-center">
-                        <FileSpreadsheet className="h-5 w-5 text-green-600 mr-3" />
-                        <div>
-                          <p className="text-sm font-medium text-gray-900">
-                            {file.originalName}
-                          </p>
-                          <p className="text-xs text-gray-500">
-                            {new Date(file.uploadDate).toLocaleDateString()}
-                          </p>
+                      Upload File
+                    </a>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Enhanced Chart Configuration */}
+          <div className="xl:col-span-3">
+            <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-gray-200/50 overflow-hidden">
+              <div className="bg-gradient-to-r from-purple-600 to-pink-600 p-6">
+                <h3 className="text-lg font-semibold text-white flex items-center">
+                  <BarChart3 className="h-5 w-5 mr-2" />
+                  Chart Configuration
+                </h3>
+                <p className="text-purple-100 text-sm mt-1">Configure your visualization settings</p>
+              </div>
+              <div className="p-6">
+                {selectedFile && fileData ? (
+                  <div className="space-y-8">
+                    {/* Enhanced Axis Selection */}
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                      <div className="space-y-2">
+                        <label className="flex items-center text-sm font-semibold text-gray-700">
+                          <div className="w-4 h-4 bg-blue-500 rounded mr-2"></div>
+                          X-Axis (Categories)
+                        </label>
+                        <select
+                          value={chartConfig.xAxis}
+                          onChange={(e) => setChartConfig({ ...chartConfig, xAxis: e.target.value })}
+                          className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 bg-white/50"
+                        >
+                          <option value="">Select X-axis column</option>
+                          {fileData.columns?.map((column) => (
+                            <option key={column} value={column}>
+                              {column}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div className="space-y-2">
+                        <label className="flex items-center text-sm font-semibold text-gray-700">
+                          <div className="w-4 h-4 bg-green-500 rounded mr-2"></div>
+                          Y-Axis (Values)
+                        </label>
+                        <select
+                          value={chartConfig.yAxis}
+                          onChange={(e) => setChartConfig({ ...chartConfig, yAxis: e.target.value })}
+                          className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all duration-200 bg-white/50"
+                        >
+                          <option value="">Select Y-axis column</option>
+                          {fileData.columns?.map((column) => (
+                            <option key={column} value={column}>
+                              {column}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+
+                    {/* Enhanced Chart Type Selection */}
+                    <div className="space-y-6">
+                      <h4 className="text-lg font-semibold text-gray-900 flex items-center">
+                        <div className="w-6 h-6 bg-gradient-to-r from-purple-500 to-pink-500 rounded-lg mr-3"></div>
+                        Choose Visualization Type
+                      </h4>
+                      
+                      {/* 2D Charts */}
+                      <div className="bg-gradient-to-r from-blue-50 to-cyan-50 rounded-xl p-6 border border-blue-200">
+                        <h5 className="text-md font-semibold text-blue-900 mb-4 flex items-center">
+                          <div className="w-3 h-3 bg-blue-500 rounded-full mr-2"></div>
+                          2D Charts - Classic Visualizations
+                        </h5>
+                        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                          {[
+                            { value: 'bar', label: 'Bar Chart', icon: '📊', desc: 'Compare categories' },
+                            { value: 'line', label: 'Line Chart', icon: '📈', desc: 'Show trends' },
+                            { value: 'pie', label: 'Pie Chart', icon: '🥧', desc: 'Show proportions' },
+                            { value: 'scatter', label: 'Scatter Plot', icon: '🔵', desc: 'Find correlations' }
+                          ].map((type) => (
+                            <button
+                              key={type.value}
+                              onClick={() => setChartConfig({ ...chartConfig, chartType: type.value })}
+                              className={`group p-4 text-center rounded-xl border-2 transition-all duration-300 transform hover:scale-105 ${
+                                chartConfig.chartType === type.value
+                                  ? 'border-blue-500 bg-blue-100 shadow-lg scale-105'
+                                  : 'border-gray-200 bg-white hover:border-blue-300 hover:bg-blue-50'
+                              }`}
+                            >
+                              <div className="text-2xl mb-2">{type.icon}</div>
+                              <div className="text-sm font-semibold text-gray-900 mb-1">{type.label}</div>
+                              <div className="text-xs text-gray-600">{type.desc}</div>
+                            </button>
+                          ))}
                         </div>
                       </div>
-                    </button>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-center py-8">
-                  <FileSpreadsheet className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                  <p className="text-gray-500">No files available</p>
-                  <a
-                    href="/upload"
-                    className="text-primary-600 hover:text-primary-700 text-sm font-medium"
-                  >
-                    Upload a file to get started
-                  </a>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
 
-        {/* Chart Configuration */}
-        <div className="lg:col-span-2">
-          <div className="bg-white rounded-lg shadow">
-            <div className="p-6 border-b border-gray-200">
-              <h3 className="text-lg font-medium text-gray-900">Chart Configuration</h3>
-            </div>
-            <div className="p-6">
-              {selectedFile && fileData ? (
-                <div className="space-y-6">
-                  {/* Axis Selection */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        X-Axis (Categories)
-                      </label>
-                      <select
-                        value={chartConfig.xAxis}
-                        onChange={(e) => setChartConfig({ ...chartConfig, xAxis: e.target.value })}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-primary-500 focus:border-primary-500"
-                      >
-                        <option value="">Select X-axis column</option>
-                        {fileData.columns?.map((column) => (
-                          <option key={column} value={column}>
-                            {column}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Y-Axis (Values)
-                      </label>
-                      <select
-                        value={chartConfig.yAxis}
-                        onChange={(e) => setChartConfig({ ...chartConfig, yAxis: e.target.value })}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-primary-500 focus:border-primary-500"
-                      >
-                        <option value="">Select Y-axis column</option>
-                        {fileData.columns?.map((column) => (
-                          <option key={column} value={column}>
-                            {column}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                  </div>
-
-                  {/* Chart Type Selection */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Chart Type
-                    </label>
-                    
-                    {/* 2D Charts */}
-                    <div className="mb-4">
-                      <h5 className="text-sm font-medium text-gray-600 mb-2">2D Charts</h5>
-                      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                        {[
-                          { value: 'bar', label: 'Bar Chart' },
-                          { value: 'line', label: 'Line Chart' },
-                          { value: 'pie', label: 'Pie Chart' },
-                          { value: 'scatter', label: 'Scatter Plot' }
-                        ].map((type) => (
-                          <button
-                            key={type.value}
-                            onClick={() => setChartConfig({ ...chartConfig, chartType: type.value })}
-                            className={`p-3 text-sm font-medium rounded-lg border transition-colors ${
-                              chartConfig.chartType === type.value
-                                ? 'border-primary-500 bg-primary-50 text-primary-700'
-                                : 'border-gray-200 text-gray-700 hover:bg-gray-50'
-                            }`}
-                          >
-                            {type.label}
-                          </button>
-                        ))}
+                      {/* 3D Charts */}
+                      <div className="bg-gradient-to-r from-purple-50 to-pink-50 rounded-xl p-6 border border-purple-200">
+                        <h5 className="text-md font-semibold text-purple-900 mb-4 flex items-center">
+                          <div className="w-3 h-3 bg-purple-500 rounded-full mr-2"></div>
+                          3D Charts - Interactive Experiences
+                        </h5>
+                        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                          {[
+                            { value: 'bar3d', label: '3D Bar Chart', icon: '🏗️', desc: 'Interactive 3D bars' },
+                            { value: 'scatter3d', label: '3D Scatter Plot', icon: '🌌', desc: 'Multi-dimensional data' },
+                            { value: 'surface3d', label: '3D Surface', icon: '🏔️', desc: 'Complex relationships' }
+                          ].map((type) => (
+                            <button
+                              key={type.value}
+                              onClick={() => setChartConfig({ ...chartConfig, chartType: type.value })}
+                              className={`group p-4 text-center rounded-xl border-2 transition-all duration-300 transform hover:scale-105 ${
+                                chartConfig.chartType === type.value
+                                  ? 'border-purple-500 bg-purple-100 shadow-lg scale-105'
+                                  : 'border-gray-200 bg-white hover:border-purple-300 hover:bg-purple-50'
+                              }`}
+                            >
+                              <div className="text-2xl mb-2">{type.icon}</div>
+                              <div className="text-sm font-semibold text-gray-900 mb-1">{type.label}</div>
+                              <div className="text-xs text-gray-600">{type.desc}</div>
+                              <div className="text-xs text-purple-600 font-medium mt-1">Interactive</div>
+                            </button>
+                          ))}
+                        </div>
                       </div>
                     </div>
 
-                    {/* 3D Charts */}
-                    <div>
-                      <h5 className="text-sm font-medium text-gray-600 mb-2">3D Charts</h5>
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                        {[
-                          { value: 'bar3d', label: '3D Bar Chart' },
-                          { value: 'scatter3d', label: '3D Scatter Plot' },
-                          { value: 'surface3d', label: '3D Surface' }
-                        ].map((type) => (
-                          <button
-                            key={type.value}
-                            onClick={() => setChartConfig({ ...chartConfig, chartType: type.value })}
-                            className={`p-3 text-sm font-medium rounded-lg border transition-colors ${
-                              chartConfig.chartType === type.value
-                                ? 'border-purple-500 bg-purple-50 text-purple-700'
-                                : 'border-gray-200 text-gray-700 hover:bg-gray-50'
-                            }`}
-                          >
-                            <span className="block">{type.label}</span>
-                            <span className="text-xs text-gray-500">Interactive 3D</span>
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Data Preview */}
-                  {fileData.preview && (
-                    <div>
-                      <h4 className="text-sm font-medium text-gray-700 mb-2">
-                        Data Preview ({fileData.preview.length} rows, {fileData.columns?.length} columns)
-                      </h4>
-                      <div className="overflow-auto max-h-96 border border-gray-200 rounded-md">
-                        <table className="min-w-full divide-y divide-gray-200">
-                          <thead className="bg-gray-50 sticky top-0">
-                            <tr>
-                              {fileData.columns?.map((column) => (
-                                <th
-                                  key={column}
-                                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-gray-200 last:border-r-0"
-                                >
-                                  {column}
-                                </th>
-                              ))}
-                            </tr>
-                          </thead>
-                          <tbody className="bg-white divide-y divide-gray-200">
-                            {fileData.preview.map((row, index) => (
-                              <tr key={index} className={index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
-                                {fileData.columns?.map((column) => (
-                                  <td
+                    {/* Enhanced Data Preview */}
+                    {fileData.preview && (
+                      <div className="bg-gradient-to-r from-gray-50 to-slate-50 rounded-xl p-6 border border-gray-200">
+                        <h4 className="text-md font-semibold text-gray-900 mb-4 flex items-center justify-between">
+                          <div className="flex items-center">
+                            <div className="w-6 h-6 bg-gradient-to-r from-green-500 to-teal-500 rounded-lg mr-3"></div>
+                            Data Preview
+                          </div>
+                          <div className="text-sm text-gray-600 bg-white px-3 py-1 rounded-full">
+                            {fileData.preview.length} rows × {fileData.columns?.length} columns
+                          </div>
+                        </h4>
+                        <div className="overflow-auto max-h-96 border-2 border-gray-200 rounded-xl bg-white shadow-inner">
+                          <table className="min-w-full divide-y divide-gray-200">
+                            <thead className="bg-gradient-to-r from-gray-100 to-gray-200 sticky top-0">
+                              <tr>
+                                {fileData.columns?.map((column, index) => (
+                                  <th
                                     key={column}
-                                    className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 border-r border-gray-200 last:border-r-0"
+                                    className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider border-r border-gray-300 last:border-r-0"
                                   >
-                                    {row[column]}
-                                  </td>
+                                    <div className="flex items-center">
+                                      <div className={`w-2 h-2 rounded-full mr-2 ${
+                                        index % 6 === 0 ? 'bg-blue-500' :
+                                        index % 6 === 1 ? 'bg-green-500' :
+                                        index % 6 === 2 ? 'bg-purple-500' :
+                                        index % 6 === 3 ? 'bg-pink-500' :
+                                        index % 6 === 4 ? 'bg-yellow-500' : 'bg-red-500'
+                                      }`}></div>
+                                      {column}
+                                    </div>
+                                  </th>
                                 ))}
                               </tr>
-                            ))}
-                          </tbody>
-                        </table>
+                            </thead>
+                            <tbody className="bg-white divide-y divide-gray-200">
+                              {fileData.preview.map((row, index) => (
+                                <tr key={index} className={`transition-colors hover:bg-gray-50 ${
+                                  index % 2 === 0 ? 'bg-white' : 'bg-gray-50/50'
+                                }`}>
+                                  {fileData.columns?.map((column) => (
+                                    <td
+                                      key={column}
+                                      className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 border-r border-gray-200 last:border-r-0"
+                                    >
+                                      {row[column]}
+                                    </td>
+                                  ))}
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
                       </div>
-                    </div>
-                  )}
+                    )}
 
-                  {/* Create Chart Button */}
-                  <div className="flex justify-end space-x-3">
-                    <button
-                      onClick={handleCreateChart}
-                      disabled={!chartConfig.xAxis || !chartConfig.yAxis || chartLoading}
-                      className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      {chartLoading ? (
-                        <>
-                          <div className="spinner mr-2"></div>
-                          Creating Chart...
-                        </>
-                      ) : (
-                        <>
-                          <BarChart3 className="h-4 w-4 mr-2" />
-                          Create Chart
-                        </>
-                      )}
-                    </button>
+                    {/* Enhanced Create Chart Button */}
+                    <div className="flex justify-center">
+                      <button
+                        onClick={handleCreateChart}
+                        disabled={!chartConfig.xAxis || !chartConfig.yAxis || chartLoading}
+                        className="group inline-flex items-center px-8 py-4 border-2 border-transparent text-lg font-semibold rounded-2xl text-white bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 hover:from-blue-700 hover:via-purple-700 hover:to-pink-700 focus:outline-none focus:ring-4 focus:ring-purple-500/50 disabled:opacity-50 disabled:cursor-not-allowed transform transition-all duration-300 hover:scale-105 shadow-xl"
+                      >
+                        {chartLoading ? (
+                          <>
+                            <div className="animate-spin h-5 w-5 mr-3">
+                              <svg className="w-5 h-5" viewBox="0 0 24 24">
+                                <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" opacity="0.25"></circle>
+                                <path fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" opacity="0.75"></path>
+                              </svg>
+                            </div>
+                            Creating Chart...
+                          </>
+                        ) : (
+                          <>
+                            <BarChart3 className="h-5 w-5 mr-3 group-hover:scale-110 transition-transform" />
+                            Create Visualization
+                            <div className="ml-2 opacity-75">✨</div>
+                          </>
+                        )}
+                      </button>
+                    </div>
                   </div>
-                </div>
-              ) : (
-                <div className="text-center py-12">
-                  <BarChart3 className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-                  <h3 className="text-lg font-medium text-gray-900 mb-2">
-                    Select a file to create charts
-                  </h3>
-                  <p className="text-gray-600">
-                    Choose a file from the left panel to start creating visualizations.
-                  </p>
-                </div>
-              )}
+                ) : (
+                  <div className="text-center py-16">
+                    <div className="w-24 h-24 bg-gradient-to-r from-gray-100 to-gray-200 rounded-3xl flex items-center justify-center mx-auto mb-6">
+                      <BarChart3 className="h-12 w-12 text-gray-400" />
+                    </div>
+                    <h3 className="text-xl font-semibold text-gray-900 mb-3">
+                      Ready to Create Amazing Visualizations?
+                    </h3>
+                    <p className="text-gray-600 max-w-sm mx-auto">
+                      Select a file from the panel to start creating beautiful, interactive charts from your data.
+                    </p>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </div>
-      </div>
 
-      {/* Generated Chart Display */}
-      {generatedChart && (
-        <div className="mt-8">
-          <h2 className="text-2xl font-bold text-gray-900 mb-6">Generated Chart</h2>
-          <ChartDisplay 
-            chartData={generatedChart.data} 
-            chartConfig={generatedChart.config} 
-            fileId={selectedFile}
-          />
-        </div>
-      )}
+        {/* Enhanced Generated Chart Display */}
+        {generatedChart && (
+          <div className="mt-12">
+            <div className="text-center mb-8">
+              <h2 className="text-3xl font-bold bg-gradient-to-r from-gray-900 via-blue-900 to-purple-900 bg-clip-text text-transparent mb-4">
+                Your Visualization is Ready! 🎉
+              </h2>
+              <p className="text-gray-600 max-w-2xl mx-auto">
+                Interact with your chart below. You can zoom, pan, and explore your data in new ways.
+              </p>
+            </div>
+            <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-2xl border border-gray-200/50 overflow-hidden">
+              <div className="bg-gradient-to-r from-indigo-600 to-purple-600 p-6">
+                <h3 className="text-lg font-semibold text-white flex items-center">
+                  <BarChart3 className="h-5 w-5 mr-2" />
+                  {chartConfig.chartType?.includes('3d') ? '3D Interactive Chart' : '2D Chart Visualization'}
+                </h3>
+                <p className="text-indigo-100 text-sm mt-1">
+                  {chartConfig.xAxis} vs {chartConfig.yAxis} • {chartConfig.chartType.toUpperCase()}
+                </p>
+              </div>
+              <div className="p-6">
+                <ChartDisplay 
+                  chartData={generatedChart.data} 
+                  chartConfig={generatedChart.config} 
+                  fileId={selectedFile}
+                />
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   )
 }
