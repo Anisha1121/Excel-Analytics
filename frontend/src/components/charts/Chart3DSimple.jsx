@@ -3,6 +3,192 @@ import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { OrbitControls, Text, Line } from '@react-three/drei';
 import * as THREE from 'three';
 
+// Enhanced 3D Surface component with smooth interpolation
+const EnhancedSurface3D = ({ surfaceData, surfaceLabels, size, colors, showAnimation }) => {
+  const surfaceRef = useRef();
+  const [hoveredSegment, setHoveredSegment] = useState(null);
+
+  // Create smooth surface geometry
+  const surfaceGeometry = useMemo(() => {
+    const geometry = new THREE.PlaneGeometry(size * 2, size * 2, size - 1, size - 1);
+    const positions = geometry.attributes.position.array;
+    const colors = new Float32Array(positions.length);
+    
+    // Find value range for proper scaling and coloring
+    const values = surfaceData.filter(v => typeof v === 'number' && !isNaN(v));
+    const minValue = Math.min(...values);
+    const maxValue = Math.max(...values);
+    const valueRange = maxValue - minValue || 1;
+    
+    // Apply height and colors to vertices
+    for (let i = 0; i < positions.length; i += 3) {
+      const x = positions[i];
+      const z = positions[i + 2];
+      
+      // Calculate grid position
+      const gridX = Math.round((x + size) / 2);
+      const gridZ = Math.round((z + size) / 2);
+      const dataIndex = gridZ * size + gridX;
+      
+      // Get height value
+      const value = surfaceData[dataIndex] || 0;
+      const normalizedValue = typeof value === 'number' ? (value - minValue) / valueRange : 0;
+      const height = normalizedValue * 6; // Scale height
+      
+      positions[i + 1] = height; // Set Y position (height)
+      
+      // Create gradient coloring based on height (like the reference image)
+      const hue = (1 - normalizedValue) * 0.75; // Blue (high) to red (low) spectrum
+      const saturation = 0.9;
+      const lightness = 0.4 + (normalizedValue * 0.4); // Darker at bottom, lighter at top
+      const color = new THREE.Color().setHSL(hue, saturation, lightness);
+      colors[i] = color.r;
+      colors[i + 1] = color.g;
+      colors[i + 2] = color.b;
+    }
+    
+    geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+    geometry.computeVertexNormals();
+    return geometry;
+  }, [surfaceData, size]);
+
+  // Animation
+  useFrame((state) => {
+    if (surfaceRef.current && showAnimation) {
+      surfaceRef.current.rotation.z = Math.sin(state.clock.elapsedTime * 0.3) * 0.05;
+    }
+  });
+
+  return (
+    <group>
+      {/* Main surface */}
+      <mesh 
+        ref={surfaceRef} 
+        geometry={surfaceGeometry}
+        onPointerOver={(e) => {
+          e.stopPropagation();
+          setHoveredSegment({ position: e.point, value: 'Surface Data' });
+        }}
+        onPointerOut={() => setHoveredSegment(null)}
+      >
+        <meshStandardMaterial 
+          vertexColors={true}
+          side={THREE.DoubleSide}
+          transparent={true}
+          opacity={0.9}
+          roughness={0.3}
+          metalness={0.1}
+        />
+      </mesh>
+      
+      {/* Wireframe overlay for better definition */}
+      <mesh geometry={surfaceGeometry}>
+        <meshBasicMaterial 
+          wireframe={true}
+          color="#ffffff"
+          transparent={true}
+          opacity={0.1}
+        />
+      </mesh>
+    </group>
+  );
+};
+
+// Layered Surface Component (like your reference image)
+const LayeredSurface3D = ({ surfaceData, surfaceLabels, size, colors, showAnimation }) => {
+  const groupRef = useRef();
+  
+  // Create multiple layers for depth effect
+  const layers = useMemo(() => {
+    const layerCount = 5;
+    const layerData = [];
+    
+    // Find value range
+    const values = surfaceData.filter(v => typeof v === 'number' && !isNaN(v));
+    const minValue = Math.min(...values);
+    const maxValue = Math.max(...values);
+    const valueRange = maxValue - minValue || 1;
+    
+    for (let layer = 0; layer < layerCount; layer++) {
+      const layerThreshold = (layer / layerCount) * valueRange + minValue;
+      const layerHeight = (layer / layerCount) * 5 + 0.5;
+      
+      // Create points for this layer
+      const layerPoints = [];
+      for (let i = 0; i < size; i++) {
+        for (let j = 0; j < size; j++) {
+          const dataIndex = i * size + j;
+          if (dataIndex < surfaceData.length) {
+            const value = surfaceData[dataIndex];
+            if (typeof value === 'number' && value >= layerThreshold) {
+              const x = (j - size / 2) * 1.5;
+              const z = (i - size / 2) * 1.5;
+              layerPoints.push({ position: [x, layerHeight, z], value });
+            }
+          }
+        }
+      }
+      
+      if (layerPoints.length > 0) {
+        // Create gradient colors for layers (like the reference image)
+        const hue = (1 - (layer / layerCount)) * 0.75; // Blue at top, red at bottom
+        const saturation = 0.9;
+        const lightness = 0.5 + (layer / layerCount) * 0.3;
+        const layerColor = new THREE.Color().setHSL(hue, saturation, lightness);
+        
+        layerData.push({
+          points: layerPoints,
+          height: layerHeight,
+          color: `#${layerColor.getHexString()}`,
+          opacity: 0.8 - (layer * 0.1)
+        });
+      }
+    }
+    
+    return layerData;
+  }, [surfaceData, size, colors]);
+
+  useFrame((state) => {
+    if (groupRef.current && showAnimation) {
+      groupRef.current.rotation.y = state.clock.elapsedTime * 0.2;
+    }
+  });
+
+  return (
+    <group ref={groupRef}>
+      {layers.map((layer, layerIndex) => (
+        <group key={layerIndex}>
+          {/* Create smooth surface for each layer */}
+          {layer.points.map((point, pointIndex) => (
+            <mesh key={`${layerIndex}-${pointIndex}`} position={point.position}>
+              <cylinderGeometry args={[0.3, 0.4, 0.2, 8]} />
+              <meshStandardMaterial 
+                color={layer.color}
+                transparent={true}
+                opacity={layer.opacity}
+                roughness={0.2}
+                metalness={0.3}
+              />
+            </mesh>
+          ))}
+          
+          {/* Add connecting surface between points */}
+          <mesh position={[0, layer.height, 0]}>
+            <planeGeometry args={[size * 1.5, size * 1.5, 8, 8]} />
+            <meshStandardMaterial 
+              color={layer.color}
+              transparent={true}
+              opacity={layer.opacity * 0.3}
+              side={THREE.DoubleSide}
+              wireframe={false}
+            />
+          </mesh>
+        </group>
+      ))}
+    </group>
+  );
+};
+
 // Simple 3D Bar component
 const SimpleBar3D = ({ position, height, color, label, value, showAnimation }) => {
   const meshRef = useRef();
@@ -180,8 +366,9 @@ const Chart3DSimple = ({ chartData, chartConfig }) => {
   const [autoRotate, setAutoRotate] = useState(false);
 
   const colors = [
-    '#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7',
-    '#DDA0DD', '#98D8C8', '#FFB6C1', '#87CEEB', '#F0E68C'
+    '#1E3A8A', '#3B82F6', '#06B6D4', '#10B981', '#84CC16', 
+    '#EAB308', '#F59E0B', '#EF4444', '#EC4899', '#8B5CF6',
+    '#6366F1', '#14B8A6', '#22C55E', '#FDE047', '#FB923C'
   ];
 
   if (!chartData || !chartConfig) {
@@ -360,59 +547,75 @@ const Chart3DSimple = ({ chartData, chartConfig }) => {
             );
           }
           
-          // Create a grid layout for surface visualization
-          const size = Math.ceil(Math.sqrt(surfaceData.length));
-          const points = [];
+          // Determine grid size for surface
+          const surfaceSize = Math.max(4, Math.ceil(Math.sqrt(surfaceData.length)));
           
-          // Find min/max values for proper scaling
-          const surfaceMinValue = Math.min(...surfaceData.filter(v => typeof v === 'number' && !isNaN(v)));
-          const surfaceMaxValue = Math.max(...surfaceData.filter(v => typeof v === 'number' && !isNaN(v)));
-          const valueRange = surfaceMaxValue - surfaceMinValue || 1;
+          console.log('Surface3D: Creating enhanced surface', { 
+            dataLength: surfaceData.length, 
+            surfaceSize,
+            sampleData: surfaceData.slice(0, 5) 
+          });
           
-          console.log('Surface3D: Value range', { minValue: surfaceMinValue, maxValue: surfaceMaxValue, valueRange, dataLength: surfaceData.length });
-          
-          for (let i = 0; i < size; i++) {
-            for (let j = 0; j < size; j++) {
-              const dataIndex = i * size + j;
-              if (dataIndex < surfaceData.length) {
-                const value = surfaceData[dataIndex];
-                const numericValue = typeof value === 'number' ? value : 0;
-                const label = surfaceLabels?.[dataIndex] || `Point ${dataIndex + 1}`;
-                
-                // Scale the height to be visible (1 to 6 units)
-                const scaledHeight = ((numericValue - surfaceMinValue) / valueRange) * 5 + 1;
-                
-                // Position points in a grid layout
-                const x = (j - size / 2) * 1.2; // Spread points wider
-                const z = (i - size / 2) * 1.2;
-                
-                points.push(
-                  <SimpleScatterPoint
-                    key={`surface-${i}-${j}`}
-                    position={[x, scaledHeight, z]}
-                    color={colors[dataIndex % colors.length]}
-                    label={String(label)}
-                    onHover={setHoveredPoint}
-                    showAnimation={showAnimation}
-                  />
-                );
-              }
-            }
-          }
-          
-          console.log('Surface3D: Generated points', points.length);
-          
-          if (points.length === 0) {
-            return (
-              <group>
-                <Text position={[0, 3, 0]} fontSize={0.5} color="yellow" anchorX="center">
-                  Failed to generate surface points
+          return (
+            <group>
+              {/* Title above the surface */}
+              <Text 
+                position={[0, 8, 0]} 
+                fontSize={0.8} 
+                color="#4ECDC4" 
+                anchorX="center"
+                anchorY="middle"
+              >
+                {chartConfig.title || 'Excel 3D Surface Plot'}
+              </Text>
+              
+              {/* Choose between enhanced smooth surface or layered surface */}
+              {surfaceData.length > 16 ? (
+                <EnhancedSurface3D
+                  surfaceData={surfaceData}
+                  surfaceLabels={surfaceLabels}
+                  size={surfaceSize}
+                  colors={colors}
+                  showAnimation={showAnimation}
+                />
+              ) : (
+                <LayeredSurface3D
+                  surfaceData={surfaceData}
+                  surfaceLabels={surfaceLabels}
+                  size={surfaceSize}
+                  colors={colors}
+                  showAnimation={showAnimation}
+                />
+              )}
+              
+              {/* Legend for surface values */}
+              <group position={[surfaceSize + 2, 3, 0]}>
+                <Text position={[0, 2, 0]} fontSize={0.4} color="white" anchorX="center">
+                  Value Range
                 </Text>
+                {[0, 1, 2, 3, 4].map((level) => {
+                  const height = level * 1.2;
+                  const color = new THREE.Color().setHSL(level * 0.15, 0.8, 0.6);
+                  return (
+                    <group key={level} position={[0, height, 0]}>
+                      <mesh>
+                        <boxGeometry args={[0.3, 0.2, 0.3]} />
+                        <meshStandardMaterial color={color} />
+                      </mesh>
+                      <Text 
+                        position={[0.8, 0, 0]} 
+                        fontSize={0.2} 
+                        color="lightgray"
+                        anchorX="left"
+                      >
+                        {`Level ${level + 1}`}
+                      </Text>
+                    </group>
+                  );
+                })}
               </group>
-            );
-          }
-          
-          return <group>{points}</group>;
+            </group>
+          );
 
         default:
           return null;
@@ -467,17 +670,32 @@ const Chart3DSimple = ({ chartData, chartConfig }) => {
             gl.shadowMap.type = THREE.PCFSoftShadowMap;
           }}
         >
-          {/* Enhanced Lighting */}
-          <ambientLight intensity={0.6} />
+          {/* Enhanced Lighting for beautiful surface visualization */}
+          <ambientLight intensity={0.4} color="#f0f8ff" />
           <directionalLight 
-            position={[10, 10, 5]} 
-            intensity={1} 
+            position={[15, 20, 10]} 
+            intensity={1.2} 
             castShadow
             shadow-mapSize-width={2048}
             shadow-mapSize-height={2048}
+            shadow-camera-far={50}
+            shadow-camera-left={-10}
+            shadow-camera-right={10}
+            shadow-camera-top={10}
+            shadow-camera-bottom={-10}
           />
-          <pointLight position={[-10, -10, -10]} intensity={0.4} />
-          <pointLight position={[10, 5, 10]} intensity={0.3} color="#4ECDC4" />
+          {/* Multiple colored lights for gradient effect */}
+          <pointLight position={[-8, 8, 8]} intensity={0.6} color="#4F46E5" />
+          <pointLight position={[8, 8, -8]} intensity={0.6} color="#06B6D4" />
+          <pointLight position={[0, 15, 0]} intensity={0.4} color="#10B981" />
+          <spotLight 
+            position={[0, 25, 0]} 
+            angle={0.3} 
+            penumbra={0.5} 
+            intensity={0.8}
+            color="#ffffff"
+            castShadow
+          />
           
           {/* Camera Controls - User has full control */}
           <OrbitControls 

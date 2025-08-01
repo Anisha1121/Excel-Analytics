@@ -84,32 +84,38 @@ function QuickTest() {
   };
 
   const test3DChart = () => {
+    // Create test data similar to the reference image with smooth gradient values
     const testData = {
-      labels: ['Product A', 'Product B', 'Product C', 'Product D', 'Product E'],
+      labels: ['1st hour', '2nd hour', '3rd hour', '4th hour', '5th hour', 
+               'Mary', 'John', 'Chris', 'Ben', 'Ann',
+               'Data A', 'Data B', 'Data C', 'Data D', 'Data E',
+               'Level 1', 'Level 2', 'Level 3', 'Level 4', 'Level 5',
+               'Point 1', 'Point 2', 'Point 3', 'Point 4', 'Point 5'],
       datasets: [{
+        label: 'Surface Data',
         data: [
-          { x: 1, y: 2, z: 3 },
-          { x: 2, y: 3, z: 1 },
-          { x: 3, y: 1, z: 2 },
-          { x: 4, y: 4, z: 4 },
-          { x: 5, y: 2, z: 3 }
+          20, 40, 60, 80, 100,
+          30, 50, 70, 90, 85,
+          25, 45, 65, 75, 95,
+          35, 55, 85, 95, 80,
+          15, 35, 55, 65, 75
         ]
       }],
       originalData: [
-        { label: 'Product A', name: 'Product A', sales: 100, profit: 20 },
-        { label: 'Product B', name: 'Product B', sales: 150, profit: 30 },
-        { label: 'Product C', name: 'Product C', sales: 120, profit: 25 },
-        { label: 'Product D', name: 'Product D', sales: 200, profit: 40 },
-        { label: 'Product E', name: 'Product E', sales: 130, profit: 28 }
+        { label: '1st hour', name: '1st hour', value: 20, category: 'Time A' },
+        { label: '2nd hour', name: '2nd hour', value: 40, category: 'Time B' },
+        { label: '3rd hour', name: '3rd hour', value: 60, category: 'Time C' },
+        { label: '4th hour', name: '4th hour', value: 80, category: 'Time D' },
+        { label: '5th hour', name: '5th hour', value: 100, category: 'Time E' }
       ]
     };
 
     const testConfig = {
-      chartType: 'surface3d', // Changed to test Surface 3D
-      title: 'Test Surface 3D Chart',
-      xAxis: 'Sales',
-      yAxis: 'Profit', 
-      zAxis: 'Performance'
+      chartType: 'surface3d', // Test the enhanced Surface 3D
+      title: 'Excel 3D Surface Plot',
+      xAxis: 'Time Periods',
+      yAxis: 'Values', 
+      zAxis: 'Categories'
     };
 
     setResult(
