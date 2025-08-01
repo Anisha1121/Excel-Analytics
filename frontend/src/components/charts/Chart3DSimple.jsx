@@ -2,6 +2,7 @@ import React, { useMemo, useRef, useState } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { OrbitControls, Text, Line } from '@react-three/drei';
 import * as THREE from 'three';
+import ChartDataTable from './ChartDataTable';
 
 // Enhanced 3D Surface component with smooth interpolation
 const EnhancedSurface3D = ({ surfaceData, surfaceLabels, size, colors, showAnimation }) => {
@@ -98,92 +99,129 @@ const EnhancedSurface3D = ({ surfaceData, surfaceLabels, size, colors, showAnima
 const LayeredSurface3D = ({ surfaceData, surfaceLabels, size, colors, showAnimation }) => {
   const groupRef = useRef();
   
-  // Create multiple layers for depth effect
-  const layers = useMemo(() => {
-    const layerCount = 5;
-    const layerData = [];
+  // Create surface layers with smooth transitions like in the reference image
+  const surfaceGeometry = useMemo(() => {
+    const segments = size - 1;
+    const planeGeometry = new THREE.PlaneGeometry(8, 8, segments, segments);
+    const vertices = planeGeometry.attributes.position.array;
     
-    // Find value range
-    const values = surfaceData.filter(v => typeof v === 'number' && !isNaN(v));
-    const minValue = Math.min(...values);
-    const maxValue = Math.max(...values);
-    const valueRange = maxValue - minValue || 1;
-    
-    for (let layer = 0; layer < layerCount; layer++) {
-      const layerThreshold = (layer / layerCount) * valueRange + minValue;
-      const layerHeight = (layer / layerCount) * 5 + 0.5;
+    // Apply data values to Z coordinates (height)
+    for (let i = 0; i < vertices.length; i += 3) {
+      const x = vertices[i];
+      const y = vertices[i + 1];
       
-      // Create points for this layer
-      const layerPoints = [];
-      for (let i = 0; i < size; i++) {
-        for (let j = 0; j < size; j++) {
-          const dataIndex = i * size + j;
-          if (dataIndex < surfaceData.length) {
-            const value = surfaceData[dataIndex];
-            if (typeof value === 'number' && value >= layerThreshold) {
-              const x = (j - size / 2) * 1.5;
-              const z = (i - size / 2) * 1.5;
-              layerPoints.push({ position: [x, layerHeight, z], value });
-            }
-          }
-        }
-      }
+      // Map position to data index
+      const u = (x + 4) / 8; // Normalize to 0-1
+      const v = (y + 4) / 8; // Normalize to 0-1
+      const dataX = Math.floor(u * (size - 1));
+      const dataY = Math.floor(v * (size - 1));
+      const dataIndex = dataY * size + dataX;
       
-      if (layerPoints.length > 0) {
-        // Create gradient colors for layers (like the reference image)
-        const hue = (1 - (layer / layerCount)) * 0.75; // Blue at top, red at bottom
-        const saturation = 0.9;
-        const lightness = 0.5 + (layer / layerCount) * 0.3;
-        const layerColor = new THREE.Color().setHSL(hue, saturation, lightness);
-        
-        layerData.push({
-          points: layerPoints,
-          height: layerHeight,
-          color: `#${layerColor.getHexString()}`,
-          opacity: 0.8 - (layer * 0.1)
-        });
+      if (dataIndex < surfaceData.length && typeof surfaceData[dataIndex] === 'number') {
+        // Scale the height based on data value
+        vertices[i + 2] = (surfaceData[dataIndex] / Math.max(...surfaceData)) * 4;
       }
     }
     
-    return layerData;
-  }, [surfaceData, size, colors]);
+    // Create color gradient like in reference image
+    const colorAttribute = new THREE.BufferAttribute(new Float32Array(vertices.length), 3);
+    for (let i = 0; i < vertices.length; i += 3) {
+      const height = vertices[i + 2];
+      const normalizedHeight = height / 4; // 0 to 1
+      
+      // Create multi-color gradient: Blue -> Green -> Yellow -> Red
+      let r, g, b;
+      if (normalizedHeight < 0.25) {
+        // Blue to Green
+        const t = normalizedHeight * 4;
+        r = 0;
+        g = t;
+        b = 1 - t;
+      } else if (normalizedHeight < 0.5) {
+        // Green to Yellow
+        const t = (normalizedHeight - 0.25) * 4;
+        r = t;
+        g = 1;
+        b = 0;
+      } else if (normalizedHeight < 0.75) {
+        // Yellow to Orange
+        const t = (normalizedHeight - 0.5) * 4;
+        r = 1;
+        g = 1 - t * 0.5;
+        b = 0;
+      } else {
+        // Orange to Red
+        const t = (normalizedHeight - 0.75) * 4;
+        r = 1;
+        g = 0.5 - t * 0.5;
+        b = 0;
+      }
+      
+      colorAttribute.setXYZ(i / 3, r, g, b);
+    }
+    
+    planeGeometry.setAttribute('color', colorAttribute);
+    planeGeometry.computeVertexNormals();
+    return planeGeometry;
+  }, [surfaceData, size]);
 
+  // Animation
   useFrame((state) => {
     if (groupRef.current && showAnimation) {
-      groupRef.current.rotation.y = state.clock.elapsedTime * 0.2;
+      groupRef.current.rotation.z = Math.sin(state.clock.elapsedTime * 0.2) * 0.05;
     }
   });
 
   return (
     <group ref={groupRef}>
-      {layers.map((layer, layerIndex) => (
-        <group key={layerIndex}>
-          {/* Create smooth surface for each layer */}
-          {layer.points.map((point, pointIndex) => (
-            <mesh key={`${layerIndex}-${pointIndex}`} position={point.position}>
-              <cylinderGeometry args={[0.3, 0.4, 0.2, 8]} />
-              <meshStandardMaterial 
-                color={layer.color}
-                transparent={true}
-                opacity={layer.opacity}
-                roughness={0.2}
-                metalness={0.3}
-              />
-            </mesh>
-          ))}
-          
-          {/* Add connecting surface between points */}
-          <mesh position={[0, layer.height, 0]}>
-            <planeGeometry args={[size * 1.5, size * 1.5, 8, 8]} />
-            <meshStandardMaterial 
-              color={layer.color}
-              transparent={true}
-              opacity={layer.opacity * 0.3}
-              side={THREE.DoubleSide}
-              wireframe={false}
-            />
-          </mesh>
-        </group>
+      {/* Main layered surface */}
+      <mesh 
+        geometry={surfaceGeometry}
+        rotation={[-Math.PI / 2, 0, 0]}
+        position={[0, 2, 0]}
+      >
+        <meshStandardMaterial 
+          vertexColors={true}
+          side={THREE.DoubleSide}
+          transparent={true}
+          opacity={0.9}
+          roughness={0.2}
+          metalness={0.1}
+          wireframe={false}
+        />
+      </mesh>
+      
+      {/* Add wireframe overlay for structure definition */}
+      <mesh 
+        geometry={surfaceGeometry}
+        rotation={[-Math.PI / 2, 0, 0]}
+        position={[0, 2.01, 0]}
+      >
+        <meshBasicMaterial 
+          wireframe={true}
+          color="#333333"
+          transparent={true}
+          opacity={0.2}
+        />
+      </mesh>
+      
+      {/* Multiple transparent layers for depth effect */}
+      {[0, 1, 2].map((layer) => (
+        <mesh 
+          key={layer}
+          geometry={surfaceGeometry}
+          rotation={[-Math.PI / 2, 0, 0]}
+          position={[0, 2 - layer * 0.3, 0]}
+        >
+          <meshStandardMaterial 
+            vertexColors={true}
+            side={THREE.DoubleSide}
+            transparent={true}
+            opacity={0.3 - layer * 0.1}
+            roughness={0.3}
+            metalness={0.2}
+          />
+        </mesh>
       ))}
     </group>
   );
@@ -420,13 +458,38 @@ const Chart3DSimple = ({ chartData, chartConfig }) => {
           }
           
           const scatterData = chartData.datasets[0].data;
-          console.log('Scatter3D: Processing data', { scatterData, chartConfig });
+          const originalData = chartData.originalData;
+          console.log('Scatter3D: Processing data', { scatterData, originalData, chartConfig });
           
           // Handle different data formats
           let processedData = [];
           
           if (Array.isArray(scatterData) && scatterData.length > 0) {
             processedData = scatterData.map((point, index) => {
+              // Get proper label from original data or X-axis value
+              let label = `Point ${index + 1}`;
+              
+              if (originalData && originalData[index]) {
+                // Use the X-axis column value as the label instead of date
+                const xAxisValue = originalData[index][chartConfig.xAxis];
+                if (xAxisValue && typeof xAxisValue === 'string' && !xAxisValue.includes('/') && !xAxisValue.includes('-')) {
+                  label = xAxisValue;
+                } else if (originalData[index].label) {
+                  label = originalData[index].label;
+                } else {
+                  // Try to find a meaningful name column
+                  const nameColumns = ['name', 'title', 'product', 'item', 'category', 'description'];
+                  for (const col of nameColumns) {
+                    if (originalData[index][col] && typeof originalData[index][col] === 'string') {
+                      label = originalData[index][col];
+                      break;
+                    }
+                  }
+                }
+              } else if (chartData.labels && chartData.labels[index]) {
+                label = chartData.labels[index];
+              }
+              
               // Handle object format {x: value, y: value} or {x: value, y: value, z: value}
               if (typeof point === 'object' && point !== null && 
                   typeof point.x === 'number' && typeof point.y === 'number') {
@@ -434,7 +497,8 @@ const Chart3DSimple = ({ chartData, chartConfig }) => {
                   x: point.x,
                   y: point.y,
                   z: point.z || Math.random() * 2 - 1, // Random Z if not provided
-                  label: chartData.labels?.[index] || `Point ${index + 1}`
+                  label: label,
+                  originalData: originalData ? originalData[index] : null
                 };
               }
               // Handle simple number format
@@ -443,7 +507,8 @@ const Chart3DSimple = ({ chartData, chartConfig }) => {
                   x: index,
                   y: point,
                   z: Math.random() * 2 - 1,
-                  label: chartData.labels?.[index] || `Point ${index + 1}`
+                  label: label,
+                  originalData: originalData ? originalData[index] : null
                 };
               }
               // Handle array format [x, y] or [x, y, z]
@@ -452,7 +517,8 @@ const Chart3DSimple = ({ chartData, chartConfig }) => {
                   x: point[0],
                   y: point[1],
                   z: point[2] || Math.random() * 2 - 1,
-                  label: chartData.labels?.[index] || `Point ${index + 1}`
+                  label: label,
+                  originalData: originalData ? originalData[index] : null
                 };
               }
               // Default fallback
@@ -461,7 +527,8 @@ const Chart3DSimple = ({ chartData, chartConfig }) => {
                   x: index,
                   y: 0,
                   z: Math.random() * 2 - 1,
-                  label: chartData.labels?.[index] || `Point ${index + 1}`
+                  label: label,
+                  originalData: originalData ? originalData[index] : null
                 };
               }
             });
@@ -748,6 +815,86 @@ const Chart3DSimple = ({ chartData, chartConfig }) => {
               <div><strong>Position:</strong> ({hoveredPoint.position.map(p => Number(p).toFixed(2)).join(', ')})</div>
             )}
           </div>
+        </div>
+      )}
+
+      {/* Data Table for 3D Scatter Charts */}
+      {chartConfig.chartType === 'scatter3d' && chartData.datasets && chartData.datasets[0] && chartData.datasets[0].data && (
+        <div className="absolute bottom-4 right-4 max-w-md">
+          <ChartDataTable
+            data={(() => {
+              const scatterData = chartData.datasets[0].data;
+              const originalData = chartData.originalData;
+              
+              return scatterData.map((point, index) => {
+                // Get proper label from original data or X-axis value
+                let label = `Point ${index + 1}`;
+                let xLabel = index;
+                
+                if (originalData && originalData[index]) {
+                  // Use the X-axis column value as the label instead of date
+                  const xAxisValue = originalData[index][chartConfig.xAxis];
+                  if (xAxisValue && typeof xAxisValue === 'string' && !xAxisValue.includes('/') && !xAxisValue.includes('-')) {
+                    label = xAxisValue;
+                    xLabel = xAxisValue;
+                  } else if (originalData[index].label) {
+                    label = originalData[index].label;
+                  } else {
+                    // Try to find a meaningful name column
+                    const nameColumns = ['name', 'title', 'product', 'item', 'category', 'description'];
+                    for (const col of nameColumns) {
+                      if (originalData[index][col] && typeof originalData[index][col] === 'string') {
+                        label = originalData[index][col];
+                        break;
+                      }
+                    }
+                  }
+                  xLabel = xAxisValue || index;
+                } else if (chartData.labels && chartData.labels[index]) {
+                  label = chartData.labels[index];
+                  xLabel = chartData.labels[index];
+                }
+                
+                // Handle different point formats
+                if (typeof point === 'object' && point !== null && 
+                    typeof point.x === 'number' && typeof point.y === 'number') {
+                  return {
+                    x: point.x,
+                    y: point.y,
+                    z: point.z || 0,
+                    label: label,
+                    xLabel: xLabel
+                  };
+                } else if (typeof point === 'number') {
+                  return {
+                    x: index,
+                    y: point,
+                    z: 0,
+                    label: label,
+                    xLabel: xLabel
+                  };
+                } else if (Array.isArray(point) && point.length >= 2) {
+                  return {
+                    x: point[0],
+                    y: point[1],
+                    z: point[2] || 0,
+                    label: label,
+                    xLabel: xLabel
+                  };
+                } else {
+                  return {
+                    x: index,
+                    y: 0,
+                    z: 0,
+                    label: label,
+                    xLabel: xLabel
+                  };
+                }
+              });
+            })()}
+            type="scatter3d"
+            title="3D Scatter Chart Data"
+          />
         </div>
       )}
     </div>

@@ -98,7 +98,18 @@ const Analytics = () => {
 
     const colors = [
       '#3B82F6', '#EF4444', '#10B981', '#F59E0B', '#8B5CF6',
-      '#EC4899', '#14B8A6', '#F97316', '#6366F1', '#84CC16'
+      '#EC4899', '#14B8A6', '#F97316', '#6366F1', '#84CC16',
+      '#F472B6', '#22D3EE', '#FB7185', '#34D399', '#FBBF24',
+      '#A78BFA', '#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4',
+      '#FFEAA7', '#DDA0DD', '#98D8C8', '#F7DC6F', '#BB8FCE'
+    ]
+
+    // Extended vibrant colors for multi-dataset charts
+    const vibrantColors = [
+      '#FF6B35', '#F7931E', '#FFD23F', '#06FFA5', '#118AB2',
+      '#073B4C', '#E63946', '#F77F00', '#FCBF49', '#06D6A0',
+      '#8338EC', '#FB5607', '#FFBE0B', '#8ECAE6', '#219EBC',
+      '#023047', '#FF006E', '#FB8500', '#FFB700', '#028090'
     ]
 
     if (chartType === 'scatter' || chartType === 'scatter3d') {
@@ -176,9 +187,14 @@ const Analytics = () => {
           {
             label: `${yAxis} vs ${xAxis}`,
             data: scatterData,
-            backgroundColor: colors[0],
-            borderColor: colors[0],
-            pointRadius: 4,
+            backgroundColor: vibrantColors[0],
+            borderColor: vibrantColors[0],
+            pointRadius: 6,
+            pointHoverRadius: 8,
+            pointBorderWidth: 2,
+            pointBorderColor: '#ffffff',
+            pointHoverBorderColor: '#ffffff',
+            pointHoverBorderWidth: 3,
           },
         ],
         originalData: originalData
@@ -264,14 +280,18 @@ const Analytics = () => {
         {
           label: chartType === 'line' ? `Average ${yAxis}` : `Total ${yAxis}`,
           data: chartValues,
-          backgroundColor: chartType === 'line' ? 'transparent' : chartType === 'bar' ? colors.slice(0, categories.length) : colors[0],
-          borderColor: chartType === 'line' ? colors[0] : chartType === 'bar' ? colors.slice(0, categories.length) : colors[0],
-          borderWidth: chartType === 'line' ? 3 : 1,
+          backgroundColor: chartType === 'line' ? 'transparent' : chartType === 'bar' ? vibrantColors.slice(0, categories.length) : vibrantColors[0],
+          borderColor: chartType === 'line' ? vibrantColors[0] : chartType === 'bar' ? vibrantColors.slice(0, categories.length) : vibrantColors[0],
+          borderWidth: chartType === 'line' ? 4 : 1,
           fill: chartType === 'line' ? false : true,
-          tension: chartType === 'line' ? 0.1 : 0,
-          pointBackgroundColor: chartType === 'line' ? colors[0] : undefined,
-          pointBorderColor: chartType === 'line' ? colors[0] : undefined,
-          pointRadius: chartType === 'line' ? 4 : 0,
+          tension: chartType === 'line' ? 0.4 : 0,
+          pointBackgroundColor: chartType === 'line' ? vibrantColors[0] : undefined,
+          pointBorderColor: chartType === 'line' ? '#ffffff' : undefined,
+          pointBorderWidth: chartType === 'line' ? 2 : 0,
+          pointRadius: chartType === 'line' ? 6 : 0,
+          pointHoverRadius: chartType === 'line' ? 8 : 0,
+          pointHoverBorderWidth: chartType === 'line' ? 3 : 0,
+          gradient: chartType === 'line' ? true : false,
         },
       ],
     }
