@@ -876,7 +876,7 @@ const Chart3DSimple = ({ chartData, chartConfig }) => {
       </div>
 
       {/* Chart Information Panel */}
-      <div className="absolute top-4 right-4 bg-black bg-opacity-80 text-white p-3 rounded-lg max-w-xs border border-gray-600">
+      <div className="absolute bottom-4 right-4 bg-black bg-opacity-80 text-white p-3 rounded-lg max-w-xs border border-gray-600" style={{ zIndex: 999 }}>
         <h4 className="font-bold mb-2 text-cyan-400">{chartConfig.title || '3D Chart'}</h4>
         <div className="text-xs text-gray-300 space-y-1">
           <div><strong>Type:</strong> <span className="text-yellow-400">{chartConfig.chartType?.toUpperCase()}</span></div>
@@ -893,7 +893,7 @@ const Chart3DSimple = ({ chartData, chartConfig }) => {
 
       {/* Hover Information */}
       {hoveredPoint && (
-        <div className="absolute bottom-4 left-4 bg-blue-600 bg-opacity-90 text-white p-3 rounded-lg border border-blue-400">
+        <div className="absolute top-4 right-4 bg-blue-600 bg-opacity-90 text-white p-3 rounded-lg border border-blue-400" style={{ zIndex: 1001 }}>
           <h4 className="font-bold text-blue-200">
             {hoveredPoint.type === 'bar' ? 'Bar Details' : 
              hoveredPoint.type === 'surface' ? 'Surface Point' : 'Point Details'}
@@ -912,7 +912,18 @@ const Chart3DSimple = ({ chartData, chartConfig }) => {
       {/* Data Table for 3D Charts */}
       {(chartConfig.chartType === 'scatter3d' || chartConfig.chartType === 'surface3d' || chartConfig.chartType === 'bar3d') && 
        chartData.datasets && chartData.datasets[0] && chartData.datasets[0].data && (
-        <div className="absolute top-20 right-4 max-w-xs" style={{ maxHeight: '300px', fontSize: '0.75rem' }}>
+        <div 
+          className="absolute top-4 left-4 max-w-xs" 
+          style={{ 
+            maxHeight: '300px', 
+            fontSize: '0.75rem',
+            zIndex: 1000,
+            background: 'rgba(255, 255, 255, 0.95)',
+            backdropFilter: 'blur(10px)',
+            borderRadius: '8px',
+            border: '1px solid rgba(255, 255, 255, 0.3)'
+          }}
+        >
           <ChartDataTable
             data={(() => {
               if (chartConfig.chartType === 'scatter3d') {
@@ -998,7 +1009,7 @@ const Chart3DSimple = ({ chartData, chartConfig }) => {
                   return {
                     row: row,
                     col: col,
-                    value: value
+                    value: (typeof value === 'number' && !isNaN(value)) ? value.toFixed(2) : '0.00'
                   };
                 });
               }

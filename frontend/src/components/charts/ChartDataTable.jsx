@@ -52,22 +52,35 @@ const ChartDataTable = ({ data, type, title }) => {
             <thead>
               <tr>
                 <th>Row</th>
-                <th>Column</th>
+                <th>Col</th>
                 <th>Value</th>
               </tr>
             </thead>
             <tbody>
-              {data.map((value, index) => {
-                const size = Math.sqrt(data.length);
-                const row = Math.floor(index / size);
-                const col = index % size;
-                return (
-                  <tr key={index}>
-                    <td>{row}</td>
-                    <td>{col}</td>
-                    <td>{typeof value === 'number' ? value.toFixed(2) : value}</td>
-                  </tr>
-                );
+              {data.map((item, index) => {
+                // Handle both old and new data formats
+                if (item && typeof item === 'object' && item.row !== undefined) {
+                  return (
+                    <tr key={index}>
+                      <td>{item.row}</td>
+                      <td>{item.col}</td>
+                      <td>{item.value || '0.00'}</td>
+                    </tr>
+                  );
+                } else {
+                  // Fallback for raw data
+                  const size = Math.sqrt(data.length);
+                  const row = Math.floor(index / size);
+                  const col = index % size;
+                  const value = typeof item === 'number' ? item.toFixed(2) : '0.00';
+                  return (
+                    <tr key={index}>
+                      <td>{row}</td>
+                      <td>{col}</td>
+                      <td>{value}</td>
+                    </tr>
+                  );
+                }
               })}
             </tbody>
           </table>
@@ -106,6 +119,7 @@ const ChartDataTable = ({ data, type, title }) => {
     case 'scatter3d':
       return renderScatter3DTable();
     case 'surface':
+    case 'surface3d':
       return renderSurfaceTable();
     case 'bar3d':
       return renderBarTable();
