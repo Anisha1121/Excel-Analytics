@@ -458,15 +458,17 @@ const Analytics = () => {
                   {/* Data Preview */}
                   {fileData.preview && (
                     <div>
-                      <h4 className="text-sm font-medium text-gray-700 mb-2">Data Preview</h4>
-                      <div className="overflow-x-auto">
-                        <table className="min-w-full divide-y divide-gray-200 border border-gray-200 rounded-md">
-                          <thead className="bg-gray-50">
+                      <h4 className="text-sm font-medium text-gray-700 mb-2">
+                        Data Preview ({fileData.preview.length} rows, {fileData.columns?.length} columns)
+                      </h4>
+                      <div className="overflow-auto max-h-96 border border-gray-200 rounded-md">
+                        <table className="min-w-full divide-y divide-gray-200">
+                          <thead className="bg-gray-50 sticky top-0">
                             <tr>
-                              {fileData.columns?.slice(0, 5).map((column) => (
+                              {fileData.columns?.map((column) => (
                                 <th
                                   key={column}
-                                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-gray-200 last:border-r-0"
                                 >
                                   {column}
                                 </th>
@@ -474,12 +476,12 @@ const Analytics = () => {
                             </tr>
                           </thead>
                           <tbody className="bg-white divide-y divide-gray-200">
-                            {fileData.preview.slice(0, 3).map((row, index) => (
-                              <tr key={index}>
-                                {fileData.columns?.slice(0, 5).map((column) => (
+                            {fileData.preview.map((row, index) => (
+                              <tr key={index} className={index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
+                                {fileData.columns?.map((column) => (
                                   <td
                                     key={column}
-                                    className="px-6 py-4 whitespace-nowrap text-sm text-gray-900"
+                                    className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 border-r border-gray-200 last:border-r-0"
                                   >
                                     {row[column]}
                                   </td>
