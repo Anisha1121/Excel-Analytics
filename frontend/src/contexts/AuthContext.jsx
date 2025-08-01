@@ -91,18 +91,6 @@ export const AuthProvider = ({ children }) => {
     localStorage.removeItem('userData')
     setUser(null)
   }
-      localStorage.setItem('token', data.token)
-      setUser(data.user)
-      return { success: true }
-    } catch (error) {
-      return { success: false, error: error.message }
-    }
-  }
-
-  const logout = () => {
-    localStorage.removeItem('token')
-    setUser(null)
-  }
 
   const value = {
     user,
