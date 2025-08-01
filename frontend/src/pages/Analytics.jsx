@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { fileService } from '../services/fileService'
-import { BarChart3, FileSpreadsheet, Download } from 'lucide-react'
+import { BarChart3, FileSpreadsheet, Download, Brain, ChevronDown, ChevronUp, Lightbulb, TrendingUp, AlertTriangle } from 'lucide-react'
 import ChartDisplay from '../components/charts/ChartDisplay'
 
 const Analytics = () => {
@@ -16,6 +16,7 @@ const Analytics = () => {
   const [chartLoading, setChartLoading] = useState(false)
   const [error, setError] = useState('')
   const [generatedChart, setGeneratedChart] = useState(null)
+  const [showAIReport, setShowAIReport] = useState(false)
 
   useEffect(() => {
     const fetchFiles = async () => {
@@ -59,13 +60,19 @@ const Analytics = () => {
       const chartData = generateChartData(fileData, chartConfig)
       console.log('Generated chart data:', { chartType: chartConfig.chartType, chartData })
       
+      // Generate AI analysis
+      const aiAnalysis = generateAIAnalysis(chartData, chartConfig, fileData)
+      console.log('Generated AI analysis:', aiAnalysis)
+      
       // For 3D charts, skip backend call and display directly
       if (['bar3d', 'scatter3d', 'surface3d'].includes(chartConfig.chartType)) {
         setGeneratedChart({
           data: chartData,
           config: chartConfig,
-          analytics: { type: '3D Chart', created: new Date() }
+          analytics: { type: '3D Chart', created: new Date() },
+          aiAnalysis: aiAnalysis
         })
+        setShowAIReport(true) // Auto-show AI report when chart is generated
         console.log('3D Chart created:', { chartType: chartConfig.chartType, data: chartData })
       } else {
         // For 2D charts, call backend to save analytics record
@@ -75,8 +82,10 @@ const Analytics = () => {
         setGeneratedChart({
           data: chartData,
           config: chartConfig,
-          analytics: result.analytics
+          analytics: result.analytics,
+          aiAnalysis: aiAnalysis
         })
+        setShowAIReport(true) // Auto-show AI report when chart is generated
         
         console.log('2D Chart created:', result)
       }
@@ -295,6 +304,228 @@ const Analytics = () => {
         },
       ],
     }
+  }
+
+  // AI Analysis Function
+  const generateAIAnalysis = (chartData, chartConfig, fileData) => {
+    if (!chartData || !chartConfig) return null
+
+    const { xAxis, yAxis, chartType } = chartConfig
+    const data = chartData.datasets?.[0]?.data || []
+    const labels = chartData.labels || []
+    
+    let analysis = {
+      summary: '',
+      insights: [],
+      recommendations: [],
+      keyFindings: []
+    }
+
+    try {
+      // Calculate basic statistics
+      const values = Array.isArray(data) ? data.map(d => typeof d === 'object' ? d.y || d.value || 0 : d) : []
+      const numericValues = values.filter(v => typeof v === 'number' && !isNaN(v))
+      
+      if (numericValues.length === 0) {
+        return {
+          summary: 'Unable to generate analysis due to insufficient numeric data.',
+          insights: ['Please ensure your data contains valid numeric values for analysis.'],
+          recommendations: ['Check data quality and try again.'],
+          keyFindings: []
+        }
+      }
+
+      const total = numericValues.reduce((sum, val) => sum + val, 0)
+      const average = total / numericValues.length
+      const max = Math.max(...numericValues)
+      const min = Math.min(...numericValues)
+      const range = max - min
+      
+      // Find highest and lowest performers
+      const maxIndex = values.indexOf(max)
+      const minIndex = values.indexOf(min)
+      const maxLabel = labels[maxIndex] || `Item ${maxIndex + 1}`
+      const minLabel = labels[minIndex] || `Item ${minIndex + 1}`
+
+      // Generate analysis based on chart type
+      switch (chartType) {
+        case 'bar':
+        case 'bar3d':
+          analysis.summary = `This bar chart shows the distribution of ${yAxis} across different ${xAxis} categories. The data reveals significant variations with ${maxLabel} leading at ${max.toLocaleString()} and ${minLabel} showing the lowest value at ${min.toLocaleString()}.`
+          
+          analysis.insights = [
+            `📊 Total ${yAxis}: ${total.toLocaleString()}`,
+            `📈 Highest performer: ${maxLabel} (${max.toLocaleString()})`,
+            `📉 Lowest performer: ${minLabel} (${min.toLocaleString()})`,
+            `📊 Average ${yAxis}: ${average.toFixed(2)}`,
+            `📏 Range: ${range.toLocaleString()} (${((range/average)*100).toFixed(1)}% of average)`
+          ]
+
+          if (max > average * 2) {
+            analysis.keyFindings.push(`🎯 ${maxLabel} significantly outperforms others, being ${(max/average).toFixed(1)}x above average`)
+          }
+          
+          if (min < average * 0.5) {
+            analysis.keyFindings.push(`⚠️ ${minLabel} underperforms significantly, being ${((average-min)/average*100).toFixed(1)}% below average`)
+          }
+
+          const aboveAverage = numericValues.filter(v => v > average).length
+          analysis.keyFindings.push(`📊 ${aboveAverage} out of ${numericValues.length} categories (${((aboveAverage/numericValues.length)*100).toFixed(1)}%) perform above average`)
+
+          analysis.recommendations = [
+            `Focus on replicating ${maxLabel}'s success factors across other categories`,
+            `Investigate why ${minLabel} is underperforming and develop improvement strategies`,
+            `Consider resource reallocation from lower to higher performing categories`
+          ]
+          break
+
+        case 'line':
+          analysis.summary = `This line chart tracks ${yAxis} trends over ${xAxis}. The data shows ${average > values[0] ? 'an overall upward' : 'a declining'} trend with an average value of ${average.toFixed(2)}.`
+          
+          // Calculate trend
+          const firstHalf = values.slice(0, Math.floor(values.length/2))
+          const secondHalf = values.slice(Math.floor(values.length/2))
+          const firstAvg = firstHalf.reduce((sum, val) => sum + val, 0) / firstHalf.length
+          const secondAvg = secondHalf.reduce((sum, val) => sum + val, 0) / secondHalf.length
+          const trendDirection = secondAvg > firstAvg ? 'upward' : 'downward'
+          const trendStrength = Math.abs(((secondAvg - firstAvg) / firstAvg) * 100)
+
+          analysis.insights = [
+            `📈 Trend direction: ${trendDirection} (${trendStrength.toFixed(1)}% change)`,
+            `🎯 Peak value: ${max.toLocaleString()} at ${maxLabel}`,
+            `📉 Lowest point: ${min.toLocaleString()} at ${minLabel}`,
+            `📊 Overall average: ${average.toFixed(2)}`,
+            `📏 Volatility range: ${range.toLocaleString()}`
+          ]
+
+          analysis.keyFindings.push(`📊 The data shows a ${trendDirection} trend with ${trendStrength.toFixed(1)}% change from first to second half`)
+          
+          if (trendStrength > 20) {
+            analysis.keyFindings.push(`🚀 Strong ${trendDirection} momentum detected - ${trendStrength.toFixed(1)}% change indicates significant growth pattern`)
+          }
+
+          analysis.recommendations = [
+            trendDirection === 'upward' ? 'Capitalize on the positive trend by maintaining current strategies' : 'Investigate causes of decline and implement corrective measures',
+            `Monitor closely around ${maxLabel} period to understand peak performance factors`,
+            'Consider smoothing out volatility through strategic planning'
+          ]
+          break
+
+        case 'pie':
+          const percentages = values.map(v => (v / total) * 100)
+          const dominantIndex = percentages.indexOf(Math.max(...percentages))
+          const dominantLabel = labels[dominantIndex]
+          const dominantPercent = percentages[dominantIndex]
+
+          analysis.summary = `This pie chart shows the composition of ${yAxis} across ${xAxis} categories. ${dominantLabel} dominates with ${dominantPercent.toFixed(1)}% of the total.`
+          
+          analysis.insights = [
+            `🥧 Total ${yAxis}: ${total.toLocaleString()}`,
+            `👑 Largest segment: ${dominantLabel} (${dominantPercent.toFixed(1)}%)`,
+            `📊 Smallest segment: ${minLabel} (${((min/total)*100).toFixed(1)}%)`,
+            `⚖️ Distribution: ${percentages.filter(p => p > 10).length} major segments (>10%)`,
+            `📈 Top 3 segments account for ${percentages.sort((a,b) => b-a).slice(0,3).reduce((sum,p) => sum+p, 0).toFixed(1)}% of total`
+          ]
+
+          if (dominantPercent > 50) {
+            analysis.keyFindings.push(`🎯 ${dominantLabel} represents majority share at ${dominantPercent.toFixed(1)}%`)
+          }
+
+          const balancedDistribution = percentages.filter(p => p >= 10 && p <= 30).length
+          if (balancedDistribution >= 3) {
+            analysis.keyFindings.push(`⚖️ Well-balanced distribution with ${balancedDistribution} segments between 10-30%`)
+          }
+
+          analysis.recommendations = [
+            dominantPercent > 60 ? `Consider diversifying to reduce dependency on ${dominantLabel}` : 'Current distribution shows healthy diversity',
+            `Evaluate if ${minLabel}'s small share (${((min/total)*100).toFixed(1)}%) is optimal or needs improvement`,
+            'Monitor segment performance to maintain balanced growth'
+          ]
+          break
+
+        case 'scatter':
+        case 'scatter3d':
+          // For scatter plots, analyze correlation
+          const xValues = data.map(d => d.x || 0)
+          const yValues = data.map(d => d.y || 0)
+          
+          // Simple correlation calculation
+          const n = Math.min(xValues.length, yValues.length)
+          const sumX = xValues.reduce((sum, val) => sum + val, 0)
+          const sumY = yValues.reduce((sum, val) => sum + val, 0)
+          const sumXY = xValues.reduce((sum, val, i) => sum + val * yValues[i], 0)
+          const sumXX = xValues.reduce((sum, val) => sum + val * val, 0)
+          const sumYY = yValues.reduce((sum, val) => sum + val * val, 0)
+          
+          const correlation = (n * sumXY - sumX * sumY) / Math.sqrt((n * sumXX - sumX * sumX) * (n * sumYY - sumY * sumY))
+          const correlationStrength = Math.abs(correlation)
+          const correlationType = correlation > 0 ? 'positive' : 'negative'
+
+          analysis.summary = `This scatter plot reveals ${correlationStrength > 0.7 ? 'a strong' : correlationStrength > 0.4 ? 'a moderate' : 'a weak'} ${correlationType} correlation (${correlation.toFixed(3)}) between ${xAxis} and ${yAxis}.`
+          
+          analysis.insights = [
+            `🔗 Correlation coefficient: ${correlation.toFixed(3)}`,
+            `📊 Relationship strength: ${correlationStrength > 0.7 ? 'Strong' : correlationStrength > 0.4 ? 'Moderate' : 'Weak'}`,
+            `📈 Direction: ${correlationType} relationship`,
+            `📍 Data points analyzed: ${n}`,
+            `🎯 ${xAxis} range: ${Math.min(...xValues).toFixed(2)} to ${Math.max(...xValues).toFixed(2)}`
+          ]
+
+          if (correlationStrength > 0.7) {
+            analysis.keyFindings.push(`🎯 Strong ${correlationType} correlation suggests ${xAxis} is a reliable predictor of ${yAxis}`)
+          } else if (correlationStrength < 0.2) {
+            analysis.keyFindings.push(`❓ Weak correlation indicates ${xAxis} and ${yAxis} may be largely independent`)
+          }
+
+          analysis.recommendations = [
+            correlationStrength > 0.5 ? `Leverage the ${correlationType} relationship between ${xAxis} and ${yAxis} for predictions` : `Look for other factors that might influence ${yAxis}`,
+            'Consider additional variables that might strengthen the relationship',
+            'Investigate outliers that might be affecting the correlation'
+          ]
+          break
+
+        case 'surface3d':
+          analysis.summary = `This 3D surface visualization shows the complex relationship between ${xAxis}, ${yAxis}, and the surface height values.`
+          
+          analysis.insights = [
+            `🏔️ 3D surface shows multi-dimensional relationships`,
+            `📊 Height range: ${min.toFixed(2)} to ${max.toFixed(2)}`,
+            `🎯 Peak elevation at: ${maxLabel}`,
+            `📉 Valley at: ${minLabel}`,
+            `📈 Average elevation: ${average.toFixed(2)}`
+          ]
+
+          analysis.keyFindings.push(`🏞️ 3D visualization reveals complex patterns not visible in 2D charts`)
+          
+          analysis.recommendations = [
+            'Explore different viewing angles to understand the surface topology',
+            'Identify peaks and valleys for strategic decision making',
+            'Consider creating 2D slices for detailed analysis of specific regions'
+          ]
+          break
+
+        default:
+          analysis.summary = `This ${chartType} visualization displays ${yAxis} data across ${xAxis} categories.`
+          analysis.insights = [`📊 Data points: ${numericValues.length}`, `📈 Range: ${min.toFixed(2)} to ${max.toFixed(2)}`]
+      }
+
+      // Add data quality insights
+      const dataQuality = (numericValues.length / (fileData?.preview?.length || 1)) * 100
+      if (dataQuality < 80) {
+        analysis.keyFindings.push(`⚠️ Data quality note: ${dataQuality.toFixed(1)}% of records contain valid numeric values`)
+      }
+
+    } catch (error) {
+      console.error('Error generating AI analysis:', error)
+      return {
+        summary: 'Analysis could not be completed due to data processing error.',
+        insights: ['Please check your data format and try again.'],
+        recommendations: ['Ensure data contains valid numeric values.'],
+        keyFindings: []
+      }
+    }
+
+    return analysis
   }
 
   if (loading) {
@@ -671,6 +902,127 @@ const Analytics = () => {
                 />
               </div>
             </div>
+
+            {/* AI Analysis Report */}
+            {generatedChart.aiAnalysis && (
+              <div className="bg-gradient-to-br from-indigo-900/90 via-purple-900/90 to-pink-900/90 backdrop-blur-sm rounded-2xl shadow-2xl border border-indigo-700/50 overflow-hidden">
+                <div className="bg-gradient-to-r from-indigo-800 via-purple-800 to-pink-800 p-6 border-b border-indigo-700/50">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center">
+                      <Brain className="h-6 w-6 mr-3 text-indigo-300" />
+                      <div>
+                        <h3 className="text-lg font-semibold text-white">
+                          AI Analysis Report
+                        </h3>
+                        <p className="text-indigo-200 text-sm mt-1">
+                          Intelligent insights and recommendations from your data
+                        </p>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => setShowAIReport(!showAIReport)}
+                      className="flex items-center px-4 py-2 bg-indigo-700/50 hover:bg-indigo-600/50 text-white text-sm font-medium rounded-lg transition-all duration-200 border border-indigo-600/50"
+                    >
+                      {showAIReport ? (
+                        <>
+                          <ChevronUp className="h-4 w-4 mr-2" />
+                          Hide Report
+                        </>
+                      ) : (
+                        <>
+                          <ChevronDown className="h-4 w-4 mr-2" />
+                          View Report
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </div>
+
+                {showAIReport && (
+                  <div className="p-8 space-y-8">
+                    {/* Summary Section */}
+                    <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6 border border-white/20">
+                      <div className="flex items-center mb-4">
+                        <div className="w-8 h-8 bg-gradient-to-r from-blue-400 to-cyan-400 rounded-lg flex items-center justify-center mr-3">
+                          <TrendingUp className="h-4 w-4 text-white" />
+                        </div>
+                        <h4 className="text-lg font-semibold text-white">Executive Summary</h4>
+                      </div>
+                      <p className="text-gray-200 leading-relaxed text-base">
+                        {generatedChart.aiAnalysis.summary}
+                      </p>
+                    </div>
+
+                    {/* Key Insights */}
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                      <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6 border border-white/20">
+                        <div className="flex items-center mb-4">
+                          <div className="w-8 h-8 bg-gradient-to-r from-green-400 to-emerald-400 rounded-lg flex items-center justify-center mr-3">
+                            <BarChart3 className="h-4 w-4 text-white" />
+                          </div>
+                          <h4 className="text-lg font-semibold text-white">Key Insights</h4>
+                        </div>
+                        <div className="space-y-3">
+                          {generatedChart.aiAnalysis.insights.map((insight, index) => (
+                            <div key={index} className="flex items-start">
+                              <div className="w-2 h-2 bg-green-400 rounded-full mt-2 mr-3 flex-shrink-0"></div>
+                              <p className="text-gray-200 text-sm">{insight}</p>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6 border border-white/20">
+                        <div className="flex items-center mb-4">
+                          <div className="w-8 h-8 bg-gradient-to-r from-yellow-400 to-orange-400 rounded-lg flex items-center justify-center mr-3">
+                            <Lightbulb className="h-4 w-4 text-white" />
+                          </div>
+                          <h4 className="text-lg font-semibold text-white">Recommendations</h4>
+                        </div>
+                        <div className="space-y-3">
+                          {generatedChart.aiAnalysis.recommendations.map((recommendation, index) => (
+                            <div key={index} className="flex items-start">
+                              <div className="w-2 h-2 bg-yellow-400 rounded-full mt-2 mr-3 flex-shrink-0"></div>
+                              <p className="text-gray-200 text-sm">{recommendation}</p>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Key Findings */}
+                    {generatedChart.aiAnalysis.keyFindings.length > 0 && (
+                      <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6 border border-white/20">
+                        <div className="flex items-center mb-4">
+                          <div className="w-8 h-8 bg-gradient-to-r from-red-400 to-pink-400 rounded-lg flex items-center justify-center mr-3">
+                            <AlertTriangle className="h-4 w-4 text-white" />
+                          </div>
+                          <h4 className="text-lg font-semibold text-white">Key Findings</h4>
+                        </div>
+                        <div className="space-y-3">
+                          {generatedChart.aiAnalysis.keyFindings.map((finding, index) => (
+                            <div key={index} className="flex items-start">
+                              <div className="w-2 h-2 bg-red-400 rounded-full mt-2 mr-3 flex-shrink-0"></div>
+                              <p className="text-gray-200 text-sm">{finding}</p>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Report Footer */}
+                    <div className="text-center pt-6 border-t border-white/20">
+                      <p className="text-gray-300 text-sm">
+                        📊 AI Analysis generated on {new Date().toLocaleDateString()} at {new Date().toLocaleTimeString()}
+                      </p>
+                      <p className="text-gray-400 text-xs mt-1">
+                        This analysis is based on the current dataset and may vary with different data
+                      </p>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         )}
       </div>
