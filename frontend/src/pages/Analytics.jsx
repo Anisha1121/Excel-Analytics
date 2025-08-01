@@ -350,7 +350,7 @@ const Analytics = () => {
           </div>
         )}
 
-        <div className="grid grid-cols-1 xl:grid-cols-4 gap-8">
+        <div className="grid grid-cols-1 xl:grid-cols-5 gap-8">
           {/* Enhanced File Selection */}
           <div className="xl:col-span-1">
             <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-gray-200/50 overflow-hidden sticky top-8">
@@ -420,7 +420,7 @@ const Analytics = () => {
           </div>
 
           {/* Enhanced Chart Configuration */}
-          <div className="xl:col-span-3">
+          <div className="xl:col-span-4">
             <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-gray-200/50 overflow-hidden">
               <div className="bg-gradient-to-r from-purple-600 to-pink-600 p-6">
                 <h3 className="text-lg font-semibold text-white flex items-center">
@@ -429,9 +429,9 @@ const Analytics = () => {
                 </h3>
                 <p className="text-purple-100 text-sm mt-1">Configure your visualization settings</p>
               </div>
-              <div className="p-6">
+              <div className="p-8 space-y-8">
                 {selectedFile && fileData ? (
-                  <div className="space-y-8">
+                  <div className="space-y-10">
                     {/* Enhanced Axis Selection */}
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                       <div className="space-y-2">
@@ -474,7 +474,7 @@ const Analytics = () => {
                     </div>
 
                     {/* Enhanced Chart Type Selection */}
-                    <div className="space-y-6">
+                    <div className="space-y-8">
                       <h4 className="text-lg font-semibold text-gray-900 flex items-center">
                         <div className="w-6 h-6 bg-gradient-to-r from-purple-500 to-pink-500 rounded-lg mr-3"></div>
                         Choose Visualization Type
@@ -541,34 +541,34 @@ const Analytics = () => {
                       </div>
                     </div>
 
-                    {/* Enhanced Data Preview */}
+                    {/* Enhanced Data Preview with Dark Theme */}
                     {fileData.preview && (
-                      <div className="bg-gradient-to-r from-gray-50 to-slate-50 rounded-xl p-6 border border-gray-200">
-                        <h4 className="text-md font-semibold text-gray-900 mb-4 flex items-center justify-between">
+                      <div className="bg-gray-900/90 backdrop-blur-sm rounded-xl p-6 border border-gray-700/50 shadow-xl">
+                        <h4 className="text-md font-semibold text-white mb-4 flex items-center justify-between">
                           <div className="flex items-center">
-                            <div className="w-6 h-6 bg-gradient-to-r from-green-500 to-teal-500 rounded-lg mr-3"></div>
+                            <div className="w-6 h-6 bg-gradient-to-r from-green-400 to-teal-400 rounded-lg mr-3"></div>
                             Data Preview
                           </div>
-                          <div className="text-sm text-gray-600 bg-white px-3 py-1 rounded-full">
+                          <div className="text-sm text-gray-300 bg-gray-800/80 px-3 py-1 rounded-full border border-gray-600">
                             {fileData.preview.length} rows × {fileData.columns?.length} columns
                           </div>
                         </h4>
-                        <div className="overflow-auto max-h-96 border-2 border-gray-200 rounded-xl bg-white shadow-inner">
-                          <table className="min-w-full divide-y divide-gray-200">
-                            <thead className="bg-gradient-to-r from-gray-100 to-gray-200 sticky top-0">
+                        <div className="overflow-auto max-h-96 border-2 border-gray-600/50 rounded-xl bg-gray-800/50 backdrop-blur-sm shadow-inner">
+                          <table className="min-w-full divide-y divide-gray-600">
+                            <thead className="bg-gray-800/80 backdrop-blur-sm sticky top-0">
                               <tr>
                                 {fileData.columns?.map((column, index) => (
                                   <th
                                     key={column}
-                                    className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider border-r border-gray-300 last:border-r-0"
+                                    className="px-6 py-4 text-left text-xs font-bold text-gray-200 uppercase tracking-wider border-r border-gray-600/50 last:border-r-0"
                                   >
                                     <div className="flex items-center">
                                       <div className={`w-2 h-2 rounded-full mr-2 ${
-                                        index % 6 === 0 ? 'bg-blue-500' :
-                                        index % 6 === 1 ? 'bg-green-500' :
-                                        index % 6 === 2 ? 'bg-purple-500' :
-                                        index % 6 === 3 ? 'bg-pink-500' :
-                                        index % 6 === 4 ? 'bg-yellow-500' : 'bg-red-500'
+                                        index % 6 === 0 ? 'bg-blue-400' :
+                                        index % 6 === 1 ? 'bg-green-400' :
+                                        index % 6 === 2 ? 'bg-purple-400' :
+                                        index % 6 === 3 ? 'bg-pink-400' :
+                                        index % 6 === 4 ? 'bg-yellow-400' : 'bg-red-400'
                                       }`}></div>
                                       {column}
                                     </div>
@@ -576,15 +576,15 @@ const Analytics = () => {
                                 ))}
                               </tr>
                             </thead>
-                            <tbody className="bg-white divide-y divide-gray-200">
+                            <tbody className="bg-gray-800/30 backdrop-blur-sm divide-y divide-gray-600/30">
                               {fileData.preview.map((row, index) => (
-                                <tr key={index} className={`transition-colors hover:bg-gray-50 ${
-                                  index % 2 === 0 ? 'bg-white' : 'bg-gray-50/50'
+                                <tr key={index} className={`transition-colors hover:bg-gray-700/50 ${
+                                  index % 2 === 0 ? 'bg-gray-800/20' : 'bg-gray-700/20'
                                 }`}>
                                   {fileData.columns?.map((column) => (
                                     <td
                                       key={column}
-                                      className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 border-r border-gray-200 last:border-r-0"
+                                      className="px-6 py-4 whitespace-nowrap text-sm text-gray-200 border-r border-gray-600/30 last:border-r-0"
                                     >
                                       {row[column]}
                                     </td>
@@ -644,7 +644,7 @@ const Analytics = () => {
 
         {/* Enhanced Generated Chart Display */}
         {generatedChart && (
-          <div className="mt-12">
+          <div className="mt-16 space-y-6">
             <div className="text-center mb-8">
               <h2 className="text-3xl font-bold bg-gradient-to-r from-gray-900 via-blue-900 to-purple-900 bg-clip-text text-transparent mb-4">
                 Your Visualization is Ready! 🎉
@@ -653,17 +653,17 @@ const Analytics = () => {
                 Interact with your chart below. You can zoom, pan, and explore your data in new ways.
               </p>
             </div>
-            <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-2xl border border-gray-200/50 overflow-hidden">
-              <div className="bg-gradient-to-r from-indigo-600 to-purple-600 p-6">
+            <div className="bg-gray-900/90 backdrop-blur-sm rounded-2xl shadow-2xl border border-gray-700/50 overflow-hidden">
+              <div className="bg-gradient-to-r from-gray-800 via-gray-900 to-black p-6 border-b border-gray-700/50">
                 <h3 className="text-lg font-semibold text-white flex items-center">
-                  <BarChart3 className="h-5 w-5 mr-2" />
+                  <BarChart3 className="h-5 w-5 mr-2 text-blue-400" />
                   {chartConfig.chartType?.includes('3d') ? '3D Interactive Chart' : '2D Chart Visualization'}
                 </h3>
-                <p className="text-indigo-100 text-sm mt-1">
+                <p className="text-gray-300 text-sm mt-1">
                   {chartConfig.xAxis} vs {chartConfig.yAxis} • {chartConfig.chartType.toUpperCase()}
                 </p>
               </div>
-              <div className="p-6">
+              <div className="p-6 bg-gray-800/30 backdrop-blur-sm">
                 <ChartDisplay 
                   chartData={generatedChart.data} 
                   chartConfig={generatedChart.config} 
