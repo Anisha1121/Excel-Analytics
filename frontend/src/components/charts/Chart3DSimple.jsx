@@ -5,7 +5,7 @@ import * as THREE from 'three';
 import ChartDataTable from './ChartDataTable';
 
 // Enhanced 3D Surface component with smooth interpolation
-const EnhancedSurface3D = ({ surfaceData, surfaceLabels, size, colors, showAnimation }) => {
+const EnhancedSurface3D = ({ surfaceData, surfaceLabels, size, colors, showAnimation, onHover }) => {
   const surfaceRef = useRef();
   const [hoveredSegment, setHoveredSegment] = useState(null);
 
@@ -68,9 +68,34 @@ const EnhancedSurface3D = ({ surfaceData, surfaceLabels, size, colors, showAnima
         geometry={surfaceGeometry}
         onPointerOver={(e) => {
           e.stopPropagation();
-          setHoveredSegment({ position: e.point, value: 'Surface Data' });
+          const point = e.point;
+          const x = point.x;
+          const z = point.z;
+          
+          // Map back to data index
+          const u = (x + 4) / 8;
+          const v = (z + 4) / 8;
+          const dataX = Math.floor(u * (size - 1));
+          const dataY = Math.floor(v * (size - 1));
+          const dataIndex = dataY * size + dataX;
+          
+          if (dataIndex < surfaceData.length && typeof surfaceData[dataIndex] === 'number') {
+            const value = surfaceData[dataIndex];
+            setHoveredSegment({ position: e.point, value: value.toFixed(2) });
+            onHover && onHover({ 
+              position: [x, point.y, z], 
+              value: value.toFixed(2), 
+              index: dataIndex,
+              type: 'surface' 
+            });
+          }
+          document.body.style.cursor = 'pointer';
         }}
-        onPointerOut={() => setHoveredSegment(null)}
+        onPointerOut={() => {
+          setHoveredSegment(null);
+          onHover && onHover(null);
+          document.body.style.cursor = 'auto';
+        }}
       >
         <meshStandardMaterial 
           vertexColors={true}
@@ -96,8 +121,9 @@ const EnhancedSurface3D = ({ surfaceData, surfaceLabels, size, colors, showAnima
 };
 
 // Layered Surface Component (like your reference image)
-const LayeredSurface3D = ({ surfaceData, surfaceLabels, size, colors, showAnimation }) => {
+const LayeredSurface3D = ({ surfaceData, surfaceLabels, size, colors, showAnimation, onHover }) => {
   const groupRef = useRef();
+  const [hoveredPoint, setHoveredPoint] = useState(null);
   
   // Create surface layers with smooth transitions like in the reference image
   const surfaceGeometry = useMemo(() => {
@@ -172,6 +198,37 @@ const LayeredSurface3D = ({ surfaceData, surfaceLabels, size, colors, showAnimat
     }
   });
 
+  const handleSurfaceHover = (e) => {
+    e.stopPropagation();
+    const point = e.point;
+    const x = point.x;
+    const z = point.z;
+    
+    // Map back to data index
+    const u = (x + 4) / 8;
+    const v = (z + 4) / 8;
+    const dataX = Math.floor(u * (size - 1));
+    const dataY = Math.floor(v * (size - 1));
+    const dataIndex = dataY * size + dataX;
+    
+    if (dataIndex < surfaceData.length && typeof surfaceData[dataIndex] === 'number') {
+      const value = surfaceData[dataIndex];
+      onHover && onHover({ 
+        position: [x, point.y, z], 
+        value: value.toFixed(2), 
+        index: dataIndex,
+        type: 'surface' 
+      });
+    }
+    document.body.style.cursor = 'pointer';
+  };
+
+  const handleSurfaceOut = (e) => {
+    e.stopPropagation();
+    onHover && onHover(null);
+    document.body.style.cursor = 'auto';
+  };
+
   return (
     <group ref={groupRef}>
       {/* Main layered surface */}
@@ -179,6 +236,8 @@ const LayeredSurface3D = ({ surfaceData, surfaceLabels, size, colors, showAnimat
         geometry={surfaceGeometry}
         rotation={[-Math.PI / 2, 0, 0]}
         position={[0, 2, 0]}
+        onPointerOver={handleSurfaceHover}
+        onPointerOut={handleSurfaceOut}
       >
         <meshStandardMaterial 
           vertexColors={true}
@@ -228,8 +287,9 @@ const LayeredSurface3D = ({ surfaceData, surfaceLabels, size, colors, showAnimat
 };
 
 // Simple 3D Bar component
-const SimpleBar3D = ({ position, height, color, label, value, showAnimation }) => {
+const SimpleBar3D = ({ position, height, color, label, value, showAnimation, onHover }) => {
   const meshRef = useRef();
+  const [hovered, setHovered] = useState(false);
   
   // Only animate if showAnimation is true
   useFrame((state) => {
@@ -238,11 +298,34 @@ const SimpleBar3D = ({ position, height, color, label, value, showAnimation }) =
     }
   });
 
+  const handlePointerOver = (e) => {
+    e.stopPropagation();
+    setHovered(true);
+    onHover && onHover({ position, label, value, type: 'bar' });
+    document.body.style.cursor = 'pointer';
+  };
+
+  const handlePointerOut = (e) => {
+    e.stopPropagation();
+    setHovered(false);
+    onHover && onHover(null);
+    document.body.style.cursor = 'auto';
+  };
+
   return (
     <group position={position}>
-      <mesh ref={meshRef} position={[0, height / 2, 0]}>
+      <mesh 
+        ref={meshRef} 
+        position={[0, height / 2, 0]}
+        onPointerOver={handlePointerOver}
+        onPointerOut={handlePointerOut}
+      >
         <boxGeometry args={[0.8, height, 0.8]} />
-        <meshStandardMaterial color={color} />
+        <meshStandardMaterial 
+          color={hovered ? '#FFD700' : color}
+          emissive={hovered ? '#FFD700' : color}
+          emissiveIntensity={hovered ? 0.3 : 0.1}
+        />
       </mesh>
       {/* Add label text above the bar */}
       <Text
@@ -446,6 +529,7 @@ const Chart3DSimple = ({ chartData, chartConfig }) => {
                 label={String(label)} // Ensure it's a string
                 value={String(dataValue)} // Show actual value
                 showAnimation={showAnimation}
+                onHover={setHoveredPoint}
               />
             );
           });
@@ -644,6 +728,7 @@ const Chart3DSimple = ({ chartData, chartConfig }) => {
                   size={surfaceSize}
                   colors={colors}
                   showAnimation={showAnimation}
+                  onHover={setHoveredPoint}
                 />
               ) : (
                 <LayeredSurface3D
@@ -652,6 +737,7 @@ const Chart3DSimple = ({ chartData, chartConfig }) => {
                   size={surfaceSize}
                   colors={colors}
                   showAnimation={showAnimation}
+                  onHover={setHoveredPoint}
                 />
               )}
               
@@ -808,9 +894,14 @@ const Chart3DSimple = ({ chartData, chartConfig }) => {
       {/* Hover Information */}
       {hoveredPoint && (
         <div className="absolute bottom-4 left-4 bg-blue-600 bg-opacity-90 text-white p-3 rounded-lg border border-blue-400">
-          <h4 className="font-bold text-blue-200">Point Details</h4>
+          <h4 className="font-bold text-blue-200">
+            {hoveredPoint.type === 'bar' ? 'Bar Details' : 
+             hoveredPoint.type === 'surface' ? 'Surface Point' : 'Point Details'}
+          </h4>
           <div className="text-sm mt-1 space-y-1">
             {hoveredPoint.label && <div><strong>Label:</strong> {hoveredPoint.label}</div>}
+            {hoveredPoint.value && <div><strong>Value:</strong> {hoveredPoint.value}</div>}
+            {hoveredPoint.index !== undefined && <div><strong>Index:</strong> {hoveredPoint.index}</div>}
             {hoveredPoint.position && (
               <div><strong>Position:</strong> ({hoveredPoint.position.map(p => Number(p).toFixed(2)).join(', ')})</div>
             )}
@@ -818,82 +909,103 @@ const Chart3DSimple = ({ chartData, chartConfig }) => {
         </div>
       )}
 
-      {/* Data Table for 3D Scatter Charts */}
-      {chartConfig.chartType === 'scatter3d' && chartData.datasets && chartData.datasets[0] && chartData.datasets[0].data && (
-        <div className="absolute bottom-4 right-4 max-w-md">
+      {/* Data Table for 3D Charts */}
+      {(chartConfig.chartType === 'scatter3d' || chartConfig.chartType === 'surface3d' || chartConfig.chartType === 'bar3d') && 
+       chartData.datasets && chartData.datasets[0] && chartData.datasets[0].data && (
+        <div className="absolute top-20 right-4 max-w-xs" style={{ maxHeight: '300px', fontSize: '0.75rem' }}>
           <ChartDataTable
             data={(() => {
-              const scatterData = chartData.datasets[0].data;
-              const originalData = chartData.originalData;
-              
-              return scatterData.map((point, index) => {
-                // Get proper label from original data or X-axis value
-                let label = `Point ${index + 1}`;
-                let xLabel = index;
+              if (chartConfig.chartType === 'scatter3d') {
+                const scatterData = chartData.datasets[0].data;
+                const originalData = chartData.originalData;
                 
-                if (originalData && originalData[index]) {
-                  // Use the X-axis column value as the label instead of date
-                  const xAxisValue = originalData[index][chartConfig.xAxis];
-                  if (xAxisValue && typeof xAxisValue === 'string' && !xAxisValue.includes('/') && !xAxisValue.includes('-')) {
-                    label = xAxisValue;
-                    xLabel = xAxisValue;
-                  } else if (originalData[index].label) {
-                    label = originalData[index].label;
-                  } else {
-                    // Try to find a meaningful name column
-                    const nameColumns = ['name', 'title', 'product', 'item', 'category', 'description'];
-                    for (const col of nameColumns) {
-                      if (originalData[index][col] && typeof originalData[index][col] === 'string') {
-                        label = originalData[index][col];
-                        break;
+                return scatterData.slice(0, 8).map((point, index) => { // Limit to first 8 points
+                  // Get proper label from original data or X-axis value
+                  let label = `Point ${index + 1}`;
+                  let xLabel = index;
+                  
+                  if (originalData && originalData[index]) {
+                    // Use the X-axis column value as the label instead of date
+                    const xAxisValue = originalData[index][chartConfig.xAxis];
+                    if (xAxisValue && typeof xAxisValue === 'string' && !xAxisValue.includes('/') && !xAxisValue.includes('-')) {
+                      label = xAxisValue;
+                      xLabel = xAxisValue;
+                    } else if (originalData[index].label) {
+                      label = originalData[index].label;
+                    } else {
+                      // Try to find a meaningful name column
+                      const nameColumns = ['name', 'title', 'product', 'item', 'category', 'description'];
+                      for (const col of nameColumns) {
+                        if (originalData[index][col] && typeof originalData[index][col] === 'string') {
+                          label = originalData[index][col];
+                          break;
+                        }
                       }
                     }
+                    xLabel = xAxisValue || index;
+                  } else if (chartData.labels && chartData.labels[index]) {
+                    label = chartData.labels[index];
+                    xLabel = chartData.labels[index];
                   }
-                  xLabel = xAxisValue || index;
-                } else if (chartData.labels && chartData.labels[index]) {
-                  label = chartData.labels[index];
-                  xLabel = chartData.labels[index];
-                }
-                
-                // Handle different point formats
-                if (typeof point === 'object' && point !== null && 
-                    typeof point.x === 'number' && typeof point.y === 'number') {
+                  
+                  // Handle different point formats
+                  if (typeof point === 'object' && point !== null && 
+                      typeof point.x === 'number' && typeof point.y === 'number') {
+                    return {
+                      x: point.x,
+                      y: point.y,
+                      z: point.z || 0,
+                      label: label,
+                      xLabel: xLabel
+                    };
+                  } else if (typeof point === 'number') {
+                    return {
+                      x: index,
+                      y: point,
+                      z: 0,
+                      label: label,
+                      xLabel: xLabel
+                    };
+                  } else if (Array.isArray(point) && point.length >= 2) {
+                    return {
+                      x: point[0],
+                      y: point[1],
+                      z: point[2] || 0,
+                      label: label,
+                      xLabel: xLabel
+                    };
+                  } else {
+                    return {
+                      x: index,
+                      y: 0,
+                      z: 0,
+                      label: label,
+                      xLabel: xLabel
+                    };
+                  }
+                });
+              } else if (chartConfig.chartType === 'bar3d') {
+                return chartData.labels.slice(0, 6).map((label, index) => ({ // Limit to first 6 bars
+                  label: label,
+                  value: chartData.datasets[0].data[index]
+                }));
+              } else if (chartConfig.chartType === 'surface3d') {
+                const surfaceData = chartData.datasets[0].data;
+                const size = Math.ceil(Math.sqrt(surfaceData.length));
+                return surfaceData.slice(0, 12).map((value, index) => { // Limit to first 12 points
+                  const row = Math.floor(index / size);
+                  const col = index % size;
                   return {
-                    x: point.x,
-                    y: point.y,
-                    z: point.z || 0,
-                    label: label,
-                    xLabel: xLabel
+                    row: row,
+                    col: col,
+                    value: value
                   };
-                } else if (typeof point === 'number') {
-                  return {
-                    x: index,
-                    y: point,
-                    z: 0,
-                    label: label,
-                    xLabel: xLabel
-                  };
-                } else if (Array.isArray(point) && point.length >= 2) {
-                  return {
-                    x: point[0],
-                    y: point[1],
-                    z: point[2] || 0,
-                    label: label,
-                    xLabel: xLabel
-                  };
-                } else {
-                  return {
-                    x: index,
-                    y: 0,
-                    z: 0,
-                    label: label,
-                    xLabel: xLabel
-                  };
-                }
-              });
+                });
+              }
+              return [];
             })()}
-            type="scatter3d"
-            title="3D Scatter Chart Data"
+            type={chartConfig.chartType}
+            title={`${chartConfig.chartType.toUpperCase()} Data (Preview)`}
           />
         </div>
       )}
