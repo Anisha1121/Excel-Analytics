@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react'
 import { fileService } from '../services/fileService'
 import { trackEvent } from '../services/analyticsTracker'
-import { BarChart3, FileSpreadsheet, Download, Brain, ChevronDown, ChevronUp, Lightbulb, TrendingUp, AlertTriangle } from 'lucide-react'
+import { pdfExportService } from '../services/pdfExportService'
+import { BarChart3, FileSpreadsheet, Download, Brain, ChevronDown, ChevronUp, Lightbulb, TrendingUp, AlertTriangle, FileText } from 'lucide-react'
 import ChartDisplay from '../components/charts/ChartDisplay'
+import AdvancedFeatures from '../components/AdvancedFeatures'
 
 const Analytics = () => {
   const [files, setFiles] = useState([])
@@ -146,6 +148,43 @@ const Analytics = () => {
     } catch (error) {
       console.error('Save 3D chart error:', error)
       setError('Failed to save 3D chart')
+    } finally {
+      setChartLoading(false)
+    }
+  }
+
+  const exportToPDF = async () => {
+    if (!generatedChart) {
+      setError('No chart to export')
+      return
+    }
+
+    try {
+      setChartLoading(true)
+      
+      // Export chart with AI analysis
+      await pdfExportService.exportAnalyticsReport(
+        generatedChart.data,
+        generatedChart.aiAnalysis,
+        {
+          filename: `${generatedChart.config.chartType}-analysis-${Date.now()}.pdf`,
+          includeAIAnalysis: true,
+          includeDataSummary: true
+        }
+      )
+      
+      // Track PDF export
+      trackEvent('pdf_exported', {
+        chartType: generatedChart.config.chartType,
+        fileId: selectedFile,
+        exportType: 'analytics_report'
+      })
+      
+      setError('')
+      console.log('PDF exported successfully')
+    } catch (error) {
+      console.error('PDF export error:', error)
+      setError('Failed to export PDF: ' + error.message)
     } finally {
       setChartLoading(false)
     }
@@ -950,20 +989,33 @@ const Analytics = () => {
                       {chartConfig.xAxis} vs {chartConfig.yAxis} • {chartConfig.chartType.toUpperCase()}
                     </p>
                   </div>
-                  {/* Save Chart Button for 3D Charts */}
-                  {chartConfig.chartType?.includes('3d') && (
+                  {/* Action Buttons */}
+                  <div className="flex items-center space-x-3">
+                    {/* PDF Export Button */}
                     <button
-                      onClick={save3DChart}
+                      onClick={exportToPDF}
                       disabled={chartLoading}
-                      className="flex items-center space-x-2 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-4 py-2 rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl"
+                      className="flex items-center space-x-2 bg-gradient-to-r from-red-600 to-pink-600 hover:from-red-700 hover:to-pink-700 text-white px-4 py-2 rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl"
                     >
-                      <Download className="h-4 w-4" />
-                      <span>{chartLoading ? 'Saving...' : 'Save 3D Chart'}</span>
+                      <FileText className="h-4 w-4" />
+                      <span>{chartLoading ? 'Exporting...' : 'Export PDF'}</span>
                     </button>
-                  )}
+                    
+                    {/* Save Chart Button for 3D Charts */}
+                    {chartConfig.chartType?.includes('3d') && (
+                      <button
+                        onClick={save3DChart}
+                        disabled={chartLoading}
+                        className="flex items-center space-x-2 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-4 py-2 rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl"
+                      >
+                        <Download className="h-4 w-4" />
+                        <span>{chartLoading ? 'Saving...' : 'Save 3D Chart'}</span>
+                      </button>
+                    )}
+                  </div>
                 </div>
               </div>
-              <div className="p-6 bg-gray-800/30 backdrop-blur-sm">
+              <div className="p-6 bg-gray-800/30 backdrop-blur-sm" id="chart-container">
                 <ChartDisplay 
                   chartData={generatedChart.data} 
                   chartConfig={generatedChart.config} 
@@ -1093,6 +1145,15 @@ const Analytics = () => {
               </div>
             )}
           </div>
+        )}
+
+        {/* Advanced Features Section */}
+        {generatedChart && (
+          <AdvancedFeatures 
+            chartData={generatedChart.data}
+            chartConfig={generatedChart.config}
+            onFeatureSelect={(feature) => console.log('Feature selected:', feature)}
+          />
         )}
       </div>
     </div>
