@@ -112,10 +112,6 @@ const Analytics = () => {
           xAxis: chartConfig.xAxis,
           yAxis: chartConfig.yAxis
         })
-          analytics: result.analytics,
-          aiAnalysis: aiAnalysis
-        })
-        setShowAIReport(true) // Auto-show AI report when chart is generated
         
         console.log('2D Chart created:', result)
       }
