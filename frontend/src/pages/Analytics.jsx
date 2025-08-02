@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { fileService } from '../services/fileService'
+import { trackEvent } from '../services/analyticsTracker'
 import { BarChart3, FileSpreadsheet, Download, Brain, ChevronDown, ChevronUp, Lightbulb, TrendingUp, AlertTriangle } from 'lucide-react'
 import ChartDisplay from '../components/charts/ChartDisplay'
 
@@ -38,6 +39,12 @@ const Analytics = () => {
     setFileData(null)
     setChartConfig({ xAxis: '', yAxis: '', chartType: 'bar' })
     
+    // Track file selection
+    trackEvent('file_selected', {
+      fileId: fileId,
+      timestamp: new Date().toISOString()
+    })
+    
     try {
       const result = await fileService.getFileData(fileId)
       setFileData(result.data)
@@ -73,6 +80,16 @@ const Analytics = () => {
           aiAnalysis: aiAnalysis
         })
         setShowAIReport(true) // Auto-show AI report when chart is generated
+        
+        // Track chart creation
+        trackEvent('chart_created', {
+          chartType: chartConfig.chartType,
+          fileId: selectedFile,
+          dimensions: '3D',
+          xAxis: chartConfig.xAxis,
+          yAxis: chartConfig.yAxis
+        })
+        
         console.log('3D Chart created:', { chartType: chartConfig.chartType, data: chartData })
       } else {
         // For 2D charts, call backend to save analytics record
@@ -82,6 +99,19 @@ const Analytics = () => {
         setGeneratedChart({
           data: chartData,
           config: chartConfig,
+          analytics: result.analytics,
+          aiAnalysis: aiAnalysis
+        })
+        setShowAIReport(true) // Auto-show AI report when chart is generated
+        
+        // Track chart creation
+        trackEvent('chart_created', {
+          chartType: chartConfig.chartType,
+          fileId: selectedFile,
+          dimensions: '2D',
+          xAxis: chartConfig.xAxis,
+          yAxis: chartConfig.yAxis
+        })
           analytics: result.analytics,
           aiAnalysis: aiAnalysis
         })

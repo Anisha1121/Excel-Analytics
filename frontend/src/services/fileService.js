@@ -92,5 +92,23 @@ export const fileService = {
     } catch (error) {
       throw new Error(error.response?.data?.message || 'Failed to get saved charts')
     }
+  },
+
+  async getDashboardStats() {
+    try {
+      const response = await api.get('/analytics/dashboard-stats')
+      return response.data
+    } catch (error) {
+      throw new Error(error.response?.data?.message || 'Failed to get dashboard statistics')
+    }
+  },
+
+  async getUserAnalytics() {
+    try {
+      const response = await api.get('/analytics/user-stats')
+      return response.data
+    } catch (error) {
+      throw new Error(error.response?.data?.message || 'Failed to get user analytics')
+    }
   }
 }

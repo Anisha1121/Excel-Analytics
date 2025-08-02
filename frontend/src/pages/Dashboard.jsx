@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo, useCallback } from 'react'
 import { useAuth } from '../contexts/AuthContext'
 import { fileService } from '../services/fileService'
+import { analyticsTracker } from '../services/analyticsTracker'
 import LoadingSpinner from '../components/LoadingSpinner'
 import { 
   BarChart3, Upload, FileSpreadsheet, TrendingUp, Activity, Star, Zap, 
@@ -28,66 +29,73 @@ const Dashboard = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const filesData = await fileService.getFiles()
+        setLoading(true)
+        
+        // Fetch files and real analytics data
+        const [filesData, dashboardStats] = await Promise.all([
+          fileService.getFiles(),
+          fileService.getDashboardStats().catch(() => ({ data: null })) // Graceful fallback
+        ])
+        
         setFiles(filesData.files || [])
         
-        // Calculate basic stats
+        // Calculate basic stats from real data
         const totalFiles = filesData.files?.length || 0
+        const today = new Date()
+        today.setHours(0, 0, 0, 0)
+        
+        const weekAgo = new Date()
+        weekAgo.setDate(weekAgo.getDate() - 7)
+        
         const recentUploads = filesData.files?.filter(file => {
-          const uploadDate = new Date(file.uploadDate)
-          const weekAgo = new Date()
-          weekAgo.setDate(weekAgo.getDate() - 7)
+          const uploadDate = new Date(file.uploadDate || file.createdAt)
           return uploadDate > weekAgo
         }).length || 0
 
-        // Generate engaging dashboard statistics with memoization
-        const generateStats = useCallback(() => {
-          const now = new Date()
-          const seed = now.getDate() + now.getMonth() * 31 // Daily variation
+        const todaysFiles = filesData.files?.filter(file => {
+          const fileDate = new Date(file.uploadDate || file.createdAt)
+          fileDate.setHours(0, 0, 0, 0)
+          return fileDate >= today
+        }).length || 0
 
-          // Realistic visitor numbers with daily variation
-          const baseVisitors = 287
-          const dailyVariation = Math.sin(seed * 0.1) * 50
-          const dailyVisitors = Math.floor(baseVisitors + dailyVariation + Math.random() * 30)
+        // Calculate real data size processed
+        const totalDataMB = filesData.files?.reduce((total, file) => {
+          return total + (file.size || 0)
+        }, 0) / (1024 * 1024) || 0
 
-          // Total users (growing over time)
-          const daysSinceLaunch = Math.floor((now - new Date('2024-01-01')) / (1000 * 60 * 60 * 24))
-          const totalUsers = Math.floor(156 + daysSinceLaunch * 0.8 + Math.random() * 25)
+        // Get real analytics from our tracker
+        const trackerStats = analyticsTracker.getRealStats()
 
-          // Charts created today
-          const chartsToday = Math.floor(Math.random() * 45) + 12
+        // Use real statistics combining backend data with client tracking
+        const realStats = {
+          totalFiles,
+          totalCharts: dashboardStats?.data?.totalChartsCreated || trackerStats.chartsToday || totalFiles,
+          recentUploads,
+          dailyVisitors: dashboardStats?.data?.dailyActiveUsers || 1, // At least current user
+          totalUsers: dashboardStats?.data?.totalUsers || 1, // At least current user
+          chartsToday: trackerStats.chartsToday || todaysFiles,
+          topChartType: trackerStats.topChartType || 'Bar Chart',
+          avgSessionTime: trackerStats.avgSessionTime || 'Active Session',
+          successRate: trackerStats.successRate || (totalFiles > 0 ? 100 : 0),
+          dataProcessed: dashboardStats?.data?.totalDataProcessedGB || (totalDataMB / 1024) // Convert to GB
+        }
 
-          // Chart type preferences
-          const chartTypes = ['Bar Chart', 'Line Chart', 'Pie Chart', '3D Surface', 'Scatter Plot']
-          const topChartType = chartTypes[Math.floor(Math.random() * chartTypes.length)]
-
-          // Session time calculation
-          const sessionMinutes = Math.floor(Math.random() * 25) + 8
-          const avgSessionTime = `${sessionMinutes}m ${Math.floor(Math.random() * 60)}s`
-
-          // Success rate (high for good UX)
-          const successRate = Math.floor(Math.random() * 8) + 92
-
-          // Data processed in GB
-          const dataProcessed = (Math.random() * 15 + 8.5).toFixed(1)
-
-          return {
-            totalFiles,
-            totalCharts: totalFiles * 3 + chartsToday, // More realistic estimate
-            recentUploads,
-            dailyVisitors,
-            totalUsers,
-            chartsToday,
-            topChartType,
-            avgSessionTime,
-            successRate,
-            dataProcessed: parseFloat(dataProcessed)
-          }
-        }, [totalFiles, recentUploads]) // Dependencies for useCallback
-
-        setStats(generateStats())
+        setStats(realStats)
       } catch (error) {
         console.error('Error fetching dashboard data:', error)
+        // Fallback to basic real data
+        setStats({
+          totalFiles: 0,
+          totalCharts: 0,
+          recentUploads: 0,
+          dailyVisitors: 1, // At least current user
+          totalUsers: 1,
+          chartsToday: 0,
+          topChartType: 'No data available',
+          avgSessionTime: 'Active Session',
+          successRate: 0,
+          dataProcessed: 0
+        })
       } finally {
         setLoading(false)
       }
@@ -95,13 +103,10 @@ const Dashboard = () => {
 
     fetchData()
     
-    // Update visitor count every 30 seconds for live feel
+    // Refresh real data every 5 minutes instead of fake increments
     const interval = setInterval(() => {
-      setStats(prev => ({
-        ...prev,
-        dailyVisitors: prev.dailyVisitors + Math.floor(Math.random() * 3)
-      }))
-    }, 30000)
+      fetchData() // Refresh actual data
+    }, 5 * 60 * 1000) // Every 5 minutes
 
     return () => clearInterval(interval)
   }, [])
